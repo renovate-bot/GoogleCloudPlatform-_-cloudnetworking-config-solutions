@@ -18,7 +18,7 @@
 *********************************************/
 
 module "organization" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v34.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.organization_sa_name
   iam = {
@@ -46,7 +46,7 @@ module "organization" {
 *********************************************/
 
 module "networking" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.networking_sa_name
   iam = {
@@ -77,7 +77,7 @@ module "networking" {
 *********************************************/
 
 module "security" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.security_sa_name
   iam = {
@@ -100,7 +100,7 @@ module "security" {
 *********************************************/
 
 module "cloudsql_producer" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.producer_cloudsql_sa_name
   iam = {
@@ -123,7 +123,7 @@ module "cloudsql_producer" {
 *********************************************/
 
 module "alloydb_producer" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.producer_alloydb_sa_name
   iam = {
@@ -146,7 +146,7 @@ module "alloydb_producer" {
 *********************************************/
 
 module "mrc_producer" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.producer_mrc_sa_name
   iam = {
@@ -169,7 +169,7 @@ module "mrc_producer" {
 *********************************************/
 
 module "vertex_producer" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.producer_vertex_sa_name
   iam = {
@@ -192,7 +192,7 @@ module "vertex_producer" {
 *********************************************/
 
 module "gke_producer" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.producer_gke_sa_name
   iam = {
@@ -219,7 +219,7 @@ module "gke_producer" {
 *****************************************************/
 
 module "networking_manual" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.networking_manual_sa_name
   iam = {
@@ -245,7 +245,7 @@ module "networking_manual" {
 *********************************************/
 
 module "gce_consumer" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.consumer_gce_sa_name
   iam = {
@@ -272,7 +272,7 @@ module "gce_consumer" {
 *********************************************/
 
 module "cloudrun_consumer" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v38.1.0"
   project_id = var.bootstrap_project_id
   name       = var.consumer_cloudrun_sa_name
   iam = {
