@@ -23,7 +23,7 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 # Define valid stages to be accepted by the -s flag
-valid_stages="all organization networking networking/ncc networking/firewallendpoint networking/CloudDNS/DNSManagedZones networking/CloudDNS/CloudDNSResponsePolicy security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer/bigquery producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/external load-balancing/network/passthrough/external network-security-integration/securityprofile network-security-integration/packetmirroringrule"
+valid_stages="all organization networking networking/ncc networking/firewallendpoint networking/CloudDNS/DNSManagedZones networking/CloudDNS/CloudDNSResponsePolicy security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer/bigquery producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/external load-balancing/network/passthrough/external network-security-integration/outofband network-security-integration/securityprofile network-security-integration/packetmirroringrule"
 
 # Define valid Terraform commands to be accepted by the -tf or --tfcommand flag
 valid_tf_commands="init apply apply-auto-approve destroy destroy-auto-approve init-apply init-apply-auto-approve"
@@ -64,6 +64,7 @@ stage_path_map=(
     "load-balancing/application/external=07-consumer-load-balancing/Application/External"
     "load-balancing/network/passthrough/internal=07-consumer-load-balancing/Network/Passthrough/Internal"
     "load-balancing/network/passthrough/external=07-consumer-load-balancing/Network/Passthrough/External"
+    "network-security-integration/outofband=08-network-security-integration/Out-Of-Band"
     "network-security-integration/securityprofile=08-network-security-integration/SecurityProfile"
     "network-security-integration/packetmirroringrule=08-network-security-integration/PacketMirroringRule"
 )
@@ -104,6 +105,7 @@ stagewise_tfvar_path_map=(
     "07-consumer-load-balancing/Application/External=../../../../configuration/consumer-load-balancing/Application/External/external-application-lb.tfvars"
     "07-consumer-load-balancing/Network/Passthrough/Internal=../../../../../configuration/consumer-load-balancing/Network/Passthrough/Internal/internal-network-passthrough.tfvars"
     "07-consumer-load-balancing/Network/Passthrough/External=../../../../../configuration/consumer-load-balancing/Network/Passthrough/External/external-network-passthrough.tfvars"
+    "08-network-security-integration/Out-Of-Band=../../../configuration/network-security-integration/OutOfBand/nsioutofband.tfvars"
     "08-network-security-integration/SecurityProfile=../../../configuration/network-security-integration/SecurityProfile/securityprofile.tfvars"
     "08-network-security-integration/PacketMirroringRule=../../../configuration/network-security-integration/PacketMirroringRule/packetmirroringrule.tfvars"
 )
@@ -154,6 +156,7 @@ stage_wise_description_map=(
   "load-balancing/application/external=Executes 07-consumer-load-balancing/Application/External stage, manages External Application Load Balancers."
   "load-balancing/network/passthrough/internal=Executes 07-consumer-load-balancing/Network/Passthrough/Internal stage, manages Int Net Passthrough LBs."
   "load-balancing/network/passthrough/external=Executes 07-consumer-load-balancing/Network/Passthrough/External stage, manages Ext Net Passthrough LBs."
+  "network-security-integration/outofband=Executes 08-network-security-integration/Out-Of-Band stage, manages Network Security Integration Out of Band."
   "network-security-integration/securityprofile=Executes 08-network-security-integration/SecurityProfile stage, manages Security Profiles and Security Profile Groups."
   "network-security-integration/packetmirroringrule=Executes 08-network-security-integration/PacketMirroringRule stage, manages Packet Mirroring Rule."
 )
