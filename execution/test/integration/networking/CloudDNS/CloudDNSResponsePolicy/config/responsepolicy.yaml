@@ -1,0 +1,18 @@
+response_policies:
+- name: rp-1957681932570953752
+  project_id: <gcp-project-id>
+  description: Test response policy
+  networks:
+    default: projects/<gcp-project-id>/global/networks/<network-name>
+  rules:
+  - rule1:
+      dns_name: app.internal.com.
+      local_data:
+        A:
+          name: app.internal.com.
+          type: A
+          ttl: 300
+          rrdatas:
+          - 10.10.10.10
+  - rule2:
+      dns_name: '*.blocked.com.'

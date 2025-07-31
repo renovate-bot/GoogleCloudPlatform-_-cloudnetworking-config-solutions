@@ -18,6 +18,7 @@ activate_api_identities = {
     "iamcredentials.googleapis.com",
     "artifactregistry.googleapis.com",
     "vpcaccess.googleapis.com",
+    "dns.googleapis.com",
     "bigquery.googleapis.com",
     ],
   },

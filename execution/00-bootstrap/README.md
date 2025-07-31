@@ -40,6 +40,8 @@ This minimal example includes only the essential fields required to execute the 
 
   organization_administrator          = ["user:organization-user-example@example.com"]
   networking_administrator            = ["user:networking-user-example@example.com"]
+  dns_managed_zones_administrator     = ["user:dns-admin-user@example.com"]
+  dns_response_policy_administrator   = ["user:dns-response-admin-user@example.com"]
   security_administrator              = ["user:security-user-example@example.com"]
 
   producer_cloudsql_administrator     = ["user:cloudsql-user-example@example.com"]
@@ -72,7 +74,7 @@ This minimal example includes only the essential fields required to execute the 
  **Distinct user IDs** : we strongly discourage using the same user ID for all stages and highly recommend users to follow the principle of least privilege for separate service accounts for the stages.
 
 <!-- BEGIN_TF_DOCS -->
- ## Modules
+## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
@@ -82,6 +84,8 @@ This minimal example includes only the essential fields required to execute the 
 | <a name="module_cloudsql_producer"></a> [cloudsql\_producer](#module\_cloudsql\_producer) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
 | <a name="module_consumer_load_balancing"></a> [consumer\_load\_balancing](#module\_consumer\_load\_balancing) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
 | <a name="module_consumer_vpc_access_connector"></a> [consumer\_vpc\_access\_connector](#module\_consumer\_vpc\_access\_connector) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
+| <a name="module_dns_managed_zones"></a> [dns\_managed\_zones](#module\_dns\_managed\_zones) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
+| <a name="module_dns_response_policy"></a> [dns\_response\_policy](#module\_dns\_response\_policy) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
 | <a name="module_gce_consumer"></a> [gce\_consumer](#module\_gce\_consumer) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
 | <a name="module_gke_producer"></a> [gke\_producer](#module\_gke\_producer) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
 | <a name="module_google_storage_bucket"></a> [google\_storage\_bucket](#module\_google\_storage\_bucket) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/gcs | v31.1.0 |
@@ -110,6 +114,8 @@ This minimal example includes only the essential fields required to execute the 
 | <a name="input_consumer_lb_sa_name"></a> [consumer\_lb\_sa\_name](#input\_consumer\_lb\_sa\_name) | Name of the service account to create for LB consumer stage. | `string` | `"consumer-lb-sa"` | no |
 | <a name="input_consumer_mig_administrator"></a> [consumer\_mig\_administrator](#input\_consumer\_mig\_administrator) | List of MIG administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com) | `list(string)` | <pre>[<br/>  ""<br/>]</pre> | no |
 | <a name="input_consumer_mig_sa_name"></a> [consumer\_mig\_sa\_name](#input\_consumer\_mig\_sa\_name) | Name of the service account to create for MIG consumer stage. | `string` | `"consumer-mig-sa"` | no |
+| <a name="input_consumer_umig_administrator"></a> [consumer\_umig\_administrator](#input\_consumer\_umig\_administrator) | List of UMIG administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com) | `list(string)` | <pre>[<br/>  ""<br/>]</pre> | no |
+| <a name="input_consumer_umig_sa_name"></a> [consumer\_umig\_sa\_name](#input\_consumer\_umig\_sa\_name) | Name of the service account to create for UMIG consumer stage. | `string` | `"consumer-umig-sa"` | no |
 | <a name="input_consumer_vpc_connector_administrator"></a> [consumer\_vpc\_connector\_administrator](#input\_consumer\_vpc\_connector\_administrator) | List of VPC conector administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com) | `list(string)` | <pre>[<br/>  ""<br/>]</pre> | no |
 | <a name="input_consumer_vpc_connector_sa_name"></a> [consumer\_vpc\_connector\_sa\_name](#input\_consumer\_vpc\_connector\_sa\_name) | Name of the service account to create for VPC Access Connector consumer stage. | `string` | `"consumer-vpcaccess-sa"` | no |
 | <a name="input_consumer_workbench_administrator"></a> [consumer\_workbench\_administrator](#input\_consumer\_workbench\_administrator) | List of Workbench administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com) | `list(string)` | <pre>[<br/>  ""<br/>]</pre> | no |
@@ -151,6 +157,8 @@ This minimal example includes only the essential fields required to execute the 
 | <a name="output_consumer_umig_email"></a> [consumer\_umig\_email](#output\_consumer\_umig\_email) | UMIG consumer stage service account IAM email. |
 | <a name="output_consumer_vpc_access_connector_email"></a> [consumer\_vpc\_access\_connector\_email](#output\_consumer\_vpc\_access\_connector\_email) | VPC Access Connector consumer stage service account IAM email. |
 | <a name="output_consumer_workbench_email"></a> [consumer\_workbench\_email](#output\_consumer\_workbench\_email) | Workbench consumer stage service account IAM email. |
+| <a name="output_dns_managed_zones_email"></a> [dns\_managed\_zones\_email](#output\_dns\_managed\_zones\_email) | DNS Managed Zones stage service account IAM email. |
+| <a name="output_dns_response_policy_email"></a> [dns\_response\_policy\_email](#output\_dns\_response\_policy\_email) | DNS Response Policy stage service account IAM email. |
 | <a name="output_networking_email"></a> [networking\_email](#output\_networking\_email) | Networking stage service account IAM email. |
 | <a name="output_organization_email"></a> [organization\_email](#output\_organization\_email) | Organization stage service account IAM email. |
 | <a name="output_producer_alloydb_email"></a> [producer\_alloydb\_email](#output\_producer\_alloydb\_email) | AlloyDB producer stage service account IAM email. |

@@ -1,0 +1,39 @@
+response_policies:
+  - name: "full-response-policy"
+    project_id: "<gcp-project-id>"
+    description: "example with GKE clusters, factory config, and local data"
+    policy_create: true
+    factories_config:
+      rules_folder: "projects/<gcp-project-id>/factories/rules"
+      enabled: true
+    networks:
+      default: "projects/<gcp-project-id>/global/networks/<your-network-name>"
+    forwarding_policies:
+      inbound:
+        target_networks:
+          - "projects/<gcp-project-id>/global/networks/<your-network-name>"
+        description: "Inbound forwarding policy example"
+      outbound:
+        target_name_servers:
+          - "8.8.8.8"
+        description: "Outbound forwarding policy example"
+    rules:
+      - rule1:
+          dns_name: "app.internal.com."
+          behavior: "bypass"
+          local_data:
+            A:
+              name: "app.internal.com."
+              type: "A"
+              ttl: 300
+              rrdatas:
+                - "10.10.10.10"
+            TXT:
+              name: "app.internal.com."
+              type: "TXT"
+              ttl: 300
+              rrdatas:
+                - "\"v=app-policy\""
+      - rule2:
+          dns_name: "*.blocked.com."
+          behavior: "block"

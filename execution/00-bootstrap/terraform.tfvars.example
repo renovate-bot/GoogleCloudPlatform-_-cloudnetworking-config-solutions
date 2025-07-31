@@ -3,15 +3,17 @@ bootstrap_project_id      = ""
 network_hostproject_id    = ""
 network_serviceproject_id = ""
 
-organization_administrator = ["user:organization-user-example@example.com"]
-networking_administrator   = ["user:networking-user-example@example.com"]
-security_administrator     = ["user:security-user-example@example.com"]
+organization_administrator          = ["user:organization-user-example@example.com"]
+networking_administrator            = ["user:networking-user-example@example.com"]
+dns_managed_zones_administrator     = ["user:dns-admin-user@example.com"]
+dns_response_policy_administrator   = ["user:dns-response-admin-user@example.com"]
+security_administrator              = ["user:security-user-example@example.com"]
 
-producer_cloudsql_administrator = ["user:cloudsql-user-example@example.com"]
-producer_gke_administrator      = ["user:gke-user-example@example.com"]
-producer_alloydb_administrator  = ["user:alloydb-user-example@example.com"]
-producer_vertex_administrator   = ["user:vertex-user-example@example.com"]
-producer_mrc_administrator      = ["user:mrc-user-example@example.com"]
+producer_cloudsql_administrator     = ["user:cloudsql-user-example@example.com"]
+producer_gke_administrator          = ["user:gke-user-example@example.com"]
+producer_alloydb_administrator      = ["user:alloydb-user-example@example.com"]
+producer_vertex_administrator       = ["user:vertex-user-example@example.com"]
+producer_mrc_administrator          = ["user:mrc-user-example@example.com"]
 producer_bigquery_administrator = ["user:bigquery-user-example@example.com"]
 producer_connectivity_administrator = ["user:connectivity-user-example@example.com"]
 

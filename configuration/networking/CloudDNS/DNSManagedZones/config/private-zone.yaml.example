@@ -1,0 +1,18 @@
+zones:
+  - zone: "corp-internal-zone"
+    project_id: "<gcp-project-id>"
+    description: "Private zone for corporate internal services"
+    force_destroy: false
+    zone_config:
+      domain: "corp.internal."
+      visibility: "private"
+      reverse_lookup: false
+      private_visibility_config:
+        networks:
+          - network_url: "projects/<gcp-project-id>/global/networks/<your-network-name>"
+    recordsets:
+      - name: "db.corp.internal."
+        type: "A"
+        ttl: 300
+        records:
+          - "10.10.1.5"

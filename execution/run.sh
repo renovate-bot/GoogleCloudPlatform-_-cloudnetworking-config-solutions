@@ -23,7 +23,7 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 # Define valid stages to be accepted by the -s flag
-valid_stages="all organization networking networking/ncc networking/firewallendpoint security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer/bigquery producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/external load-balancing/network/passthrough/external"
+valid_stages="all organization networking networking/ncc networking/firewallendpoint networking/CloudDNS/DNSManagedZones networking/CloudDNS/CloudDNSResponsePolicy security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer/bigquery producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/external load-balancing/network/passthrough/external"
 
 # Define valid Terraform commands to be accepted by the -tf or --tfcommand flag
 valid_tf_commands="init apply apply-auto-approve destroy destroy-auto-approve init-apply init-apply-auto-approve"
@@ -34,6 +34,8 @@ stage_path_map=(
     "networking=02-networking"
     "networking/ncc=02-networking/NCC"
     "networking/firewallendpoint=02-networking/FirewallEndpoint"
+    "networking/CloudDNS/DNSManagedZones=02-networking/CloudDNS/DNSManagedZones"
+    "networking/CloudDNS/CloudDNSResponsePolicy=02-networking/CloudDNS/CloudDNSResponsePolicy"
     "security/firewall/firewallpolicy=03-security/Firewall/FirewallPolicy"
     "security/securityprofile=03-security/SecurityProfile"
     "security/certificates/compute-ssl-certs/google-managed=03-security/Certificates/Compute-SSL-Certs/Google-Managed"
@@ -71,6 +73,8 @@ stagewise_tfvar_path_map=(
     "02-networking=../../configuration/networking.tfvars"
     "02-networking/NCC=../../../configuration/networking/ncc/ncc.tfvars"
     "02-networking/FirewallEndpoint=../../../configuration/networking/FirewallEndpoint/firewallendpoint.tfvars"
+    "02-networking/CloudDNS/DNSManagedZones=../../../../configuration/networking/CloudDNS/dns.tfvars"
+    "02-networking/CloudDNS/CloudDNSResponsePolicy=../../../../configuration/networking/CloudDNS/responsepolicy.tfvars"
     "03-security/Firewall/FirewallPolicy=../../../../configuration/security/Firewall/FirewallPolicy/firewallpolicy.tfvars"
     "03-security/SecurityProfile=../../../configuration/security/SecurityProfile/securityprofile.tfvars"
     "03-security/Certificates/Compute-SSL-Certs/Google-Managed=../../../../../configuration/security/Certificates/Compute-SSL-Certs/Google-Managed/google_managed_ssl.tfvars"
@@ -117,6 +121,8 @@ stage_wise_description_map=(
   "networking=Executes 02-networking stage, manages network resources."
   "networking/ncc=Executes 02-networking/NCC stage, manages NCC network resources."
   "networking/firewallendpoint=02-networking/FirewallEndpoint, manages Firewall Endpoints and Firewall Endpoint Associations."
+  "networking/CloudDNS/DNSManagedZones=02-networking/CloudDNS/DNSManagedZones, manages DNS Managed Zones."
+  "networking/CloudDNS/CloudDNSResponsePolicy=02-networking/CloudDNS/CloudDNSResponsePolicy, manages Cloud DNS Response Policies."
   "security/firewall/firewallpolicy=03-security/Firewall/FirewallPolicy, manages firewall policies."
   "security/securityprofile=03-security/SecurityProfile, manages Security Profiles and Security Profile Groups."
   "security/certificates/compute-ssl-certs/google-managed=03-security/certificates/compute-ssl-certs/google-managed, manages ssl certificates"

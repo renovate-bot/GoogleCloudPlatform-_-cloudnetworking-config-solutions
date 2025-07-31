@@ -75,6 +75,30 @@ variable "networking_administrator" {
   default     = [""]
 }
 
+variable "dns_managed_zones_sa_name" {
+  type        = string
+  description = "Name of the service account to create for DNS Managed Zones stage."
+  default     = "dns-managed-zones-sa"
+}
+
+variable "dns_managed_zones_administrator" {
+  type        = list(string)
+  description = "List of DNS Managed Zones administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com)"
+  default     = [""]
+}
+
+variable "dns_response_policy_sa_name" {
+  type        = string
+  description = "Name of the service account to create for DNS Response Policy stage."
+  default     = "dns-response-policy-sa"
+}
+
+variable "dns_response_policy_administrator" {
+  type        = list(string)
+  description = "List of DNS Response Policy administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com)"
+  default     = [""]
+}
+
 variable "security_sa_name" {
   type        = string
   description = "Name of the service account to create for security stage."

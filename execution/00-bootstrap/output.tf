@@ -28,6 +28,16 @@ output "networking_email" {
   value       = module.networking.iam_email
 }
 
+output "dns_managed_zones_email" {
+  description = "DNS Managed Zones stage service account IAM email."
+  value       = module.dns_managed_zones.iam_email
+}
+
+output "dns_response_policy_email" {
+  description = "DNS Response Policy stage service account IAM email."
+  value       = module.dns_response_policy.iam_email
+}
+
 output "security_email" {
   description = "Security stage service account IAM email."
   value       = module.security.iam_email
@@ -107,4 +117,3 @@ output "consumer_umig_email" {
   description = "UMIG consumer stage service account IAM email."
   value       = module.umig_consumer.iam_email
 }
-

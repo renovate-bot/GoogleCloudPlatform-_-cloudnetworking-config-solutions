@@ -72,6 +72,62 @@ module "networking" {
 }
 
 /********************************************
+ Service Account used to run DNS Managed Zones Stage
+*********************************************/
+
+module "dns_managed_zones" {
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  project_id = var.bootstrap_project_id
+  name       = var.dns_managed_zones_sa_name
+  iam = {
+    "roles/iam.serviceAccountTokenCreator" = var.dns_managed_zones_administrator
+  }
+  iam_project_roles = {
+    (var.network_hostproject_id) = [
+      "roles/dns.admin",
+      "roles/compute.networkUser"
+    ]
+    (var.network_serviceproject_id) = [
+      "roles/dns.admin",
+      "roles/compute.networkUser"
+    ]
+  }
+  iam_storage_roles = {
+    (module.google_storage_bucket.name) = [
+      "roles/storage.objectAdmin"
+    ]
+  }
+}
+
+/********************************************
+ Service Account used to run DNS Response Policy Stage
+*********************************************/
+
+module "dns_response_policy" {
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  project_id = var.bootstrap_project_id
+  name       = var.dns_response_policy_sa_name
+  iam = {
+    "roles/iam.serviceAccountTokenCreator" = var.dns_response_policy_administrator
+  }
+  iam_project_roles = {
+    (var.network_hostproject_id) = [
+      "roles/dns.admin",
+      "roles/compute.networkUser"
+    ]
+    (var.network_serviceproject_id) = [
+      "roles/dns.admin",
+      "roles/compute.networkUser"
+    ]
+  }
+  iam_storage_roles = {
+    (module.google_storage_bucket.name) = [
+      "roles/storage.objectAdmin"
+    ]
+  }
+}
+
+/********************************************
  Service Account used to run Security Stage
 *********************************************/
 

@@ -1,0 +1,15 @@
+zones:
+  - zone: "example-public-zone"
+    project_id: "<gcp-project-id>"
+    description: "Public DNS for example.com"
+    force_destroy: false
+    zone_config:
+      domain: "example.com."
+      visibility: "public"
+      reverse_lookup: false
+    recordsets:
+      - name: "www.example.com."
+        type: "A"
+        ttl: 300
+        records:
+          - "192.0.2.1"
