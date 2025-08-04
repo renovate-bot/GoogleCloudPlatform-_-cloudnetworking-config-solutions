@@ -45,6 +45,11 @@ This directory serves as a centralized repository for all Terraform configuratio
       - vertex-ai-online-endpoints.tfvars
       - config
         - endpoint.yaml.example
+    - Big Query
+      - bigquery.tfvars
+      - config
+        - dataset.yaml.example
+        - dataset-with-access-controls.yaml.example
 - 05-producer-connectivity stage (producer-connectivity.tfvars)
 - 06-consumer stage
   - GCE
@@ -190,6 +195,7 @@ consumer_lb_administrator           = ["user:lb-user-example@example.com"]
         "artifactregistry.googleapis.com",
         "notebooks.googleapis.com",
         "vpcaccess.googleapis.com",
+        "bigquery.googleapis.com",
       ],
     },
   }
@@ -213,7 +219,6 @@ subnets = [
     region        = "us-central1"
   }
 ]
-
 
 create_scp_policy      = true
 subnets_for_scp_policy = ["subnet-test"]

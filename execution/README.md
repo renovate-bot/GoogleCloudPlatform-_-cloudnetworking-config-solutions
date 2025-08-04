@@ -91,7 +91,7 @@ The deployment is divided into seven logically isolated stages, each handled by 
 
 5. **04-producer:**
    - Deploys GCP-managed producer services.
-   - Includes AlloyDB, Cloud SQL, Memorystore Redis clusters, GKE, Vertex AI Vector Search, Vertex AI Online Prediction Endpoint.
+   - Includes AlloyDB, BigQuery, Cloud SQL, Memorystore Redis clusters, GKE, Vertex AI Vector Search, Vertex AI Online Prediction Endpoint.
 
 6. **05-producer-connectivity:**
    - This stage establishes Private Service Connect (PSC) for secure, private communication between your consumer project and the producer services created in the "04-producer" stage.

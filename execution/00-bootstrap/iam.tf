@@ -222,6 +222,31 @@ module "gke_producer" {
   }
 }
 
+/************************************************
+ Service Account used to run BigQuery Producer Stage
+*************************************************/
+
+module "bigquery_producer" {
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v42.0.0"
+  project_id = var.project_id
+  name       = var.producer_bq_sa_name
+  iam = {
+    "roles/iam.serviceAccountTokenCreator" = var.producer_bq_administrator
+  }
+
+  iam_project_roles = {
+    (var.project_id) = [
+      "roles/bigquery.admin"
+    ]
+  }
+
+  iam_storage_roles = {
+    (module.google_storage_bucket.name) = [
+      "roles/storage.objectAdmin"
+    ]
+  }
+}
+
 /****************************************************
  Service Account used to run Producer Connectivity Stage
 *****************************************************/

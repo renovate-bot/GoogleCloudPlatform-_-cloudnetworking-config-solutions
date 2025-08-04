@@ -47,6 +47,7 @@ This minimal example includes only the essential fields required to execute the 
   producer_alloydb_administrator      = ["user:alloydb-user-example@example.com"]
   producer_vertex_administrator       = ["user:vertex-user-example@example.com"]
   producer_mrc_administrator          = ["user:mrc-user-example@example.com"]
+  producer_bigquery_administrator     = ["user:bigquery-user-example@example.com"]
   producer_connectivity_administrator = ["user:connectivity-user-example@example.com"]
 
   consumer_gce_administrator           = ["user:gce-user-example@example.com"]
