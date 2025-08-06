@@ -16,11 +16,14 @@ package common_utils
 
 import (
 	"fmt"
-	"github.com/gruntwork-io/terratest/modules/shell"
+	"os"
+	"path/filepath"
 	stdlib_strconv "strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gruntwork-io/terratest/modules/shell"
 )
 
 /*
@@ -37,7 +40,7 @@ func CreateVPCSubnets(t *testing.T, projectID string, networkName string, subnet
 	}
 	_, err := shell.RunCommandAndGetOutputE(t, cmd)
 	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
+		t.Errorf("===error %s encountered while executing %s", err, text)
 	}
 	time.Sleep(60 * time.Second)
 	if subnetworkName != "" {
@@ -50,7 +53,7 @@ func CreateVPCSubnets(t *testing.T, projectID string, networkName string, subnet
 		}
 		_, err = shell.RunCommandAndGetOutputE(t, cmd)
 		if err != nil {
-			t.Errorf("===Error %s Encountered while executing %s", err, text)
+			t.Errorf("===error %s encountered while executing %s", err, text)
 		}
 	} else {
 		t.Log("VPC will be created & Subnet will not be created.")
@@ -71,7 +74,7 @@ func DeleteVPCSubnets(t *testing.T, projectID string, networkName string, subnet
 		}
 		_, err := shell.RunCommandAndGetOutputE(t, cmd)
 		if err != nil {
-			t.Errorf("===Error %s Encountered while executing %s", err, text)
+			t.Errorf("===error %s encountered while executing %s", err, text)
 		}
 	}
 
@@ -84,7 +87,7 @@ func DeleteVPCSubnets(t *testing.T, projectID string, networkName string, subnet
 	}
 	_, err := shell.RunCommandAndGetOutputE(t, cmd)
 	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
+		t.Errorf("===error %s encountered while executing %s", err, text)
 	}
 
 }
@@ -113,14 +116,114 @@ func CreateServiceConnectionPolicy(t *testing.T, projectID string, region string
 	}
 	_, err := shell.RunCommandAndGetOutputE(t, cmd)
 	if err != nil {
-		t.Errorf("Error creating Service Connection Policy: %s", err)
+		t.Errorf("error creating Service Connection Policy: %s", err)
 	}
+}
+
+/*
+CreateGCEInstance creates a GCE VM with a startup script.
+It uses --metadata-from-file for robustness.
+*/
+func CreateGCEInstance(t *testing.T, projectID, vmName, zone, subnetName, startupScript string, scopes string, hasExternalIP bool) {
+	// Create a temporary file with a predictable name based on the unique vmName.
+	scriptFileName := fmt.Sprintf("startup-script-%s.sh", vmName)
+	scriptFile, err := os.Create(scriptFileName)
+	if err != nil {
+		t.Fatalf("Failed to create temp file for startup script: %v", err)
+	}
+	defer os.Remove(scriptFile.Name()) // Clean up the file afterwards
+
+	if _, err := scriptFile.WriteString(startupScript); err != nil {
+		t.Fatalf("Failed to write to temp startup script file: %v", err)
+	}
+	if err := scriptFile.Close(); err != nil {
+		t.Fatalf("Failed to close temp startup script file: %v", err)
+	}
+
+	if scopes == "" {
+		scopes = "https://www.googleapis.com/auth/cloud-platform"
+	}
+
+	args := []string{
+		"compute", "instances", "create", vmName,
+		"--project", projectID,
+		"--zone", zone,
+		"--subnet", subnetName,
+		"--scopes=" + scopes,
+		"--metadata-from-file", fmt.Sprintf("startup-script=%s", scriptFile.Name()),
+	}
+	if !hasExternalIP {
+		args = append(args, "--no-address")
+	}
+
+	// Use RunCommandAndGetOutputE for consistent and explicit error handling.
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    args,
+	}
+	if _, err := shell.RunCommandAndGetOutputE(t, cmd); err != nil {
+		t.Fatalf("Failed to create GCE instance with command 'gcloud %s': %v", strings.Join(args, " "), err)
+	}
+}
+
+/*
+DeleteGCEInstance cleans up the GCE VM.
+*/
+func DeleteGCEInstance(t *testing.T, projectID, vmName, zone string) {
+	// Use RunCommandAndGetOutputE for consistent and explicit error handling.
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args: []string{
+			"compute", "instances", "delete", vmName,
+			"--project", projectID,
+			"--zone", zone,
+			"--quiet",
+		},
+	}
+	if _, err := shell.RunCommandAndGetOutputE(t, cmd); err != nil {
+		t.Errorf("warning: failed to delete GCE instance '%s', this may require manual cleanup. error: %v", vmName, err)
+	}
+}
+
+/*
+CleanupConfigDir removes all .yaml files from a specified directory path.
+*/
+func CleanupConfigDir(t *testing.T, configPath string) {
+	t.Logf("Cleaning up config directory: %s", configPath)
+	files, err := filepath.Glob(filepath.Join(configPath, "*.yaml"))
+	if err != nil {
+		t.Fatalf("Error finding yaml files to clean up: %v", err)
+	}
+	for _, file := range files {
+		t.Logf("Removing stale config file: %s", file)
+		if err := os.Remove(file); err != nil {
+			t.Logf("Warning: Could not remove stale config file %s: %v", file, err)
+		}
+	}
+}
+
+/*
+GetSerialPortOutput gets the serial port output from a GCE instance.
+*/
+func GetSerialPortOutput(t *testing.T, projectID, vmName, zone string, port int) (string, error) {
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args: []string{
+			"compute", "instances", "get-serial-port-output", vmName,
+			"--project", projectID,
+			"--zone", zone,
+			fmt.Sprintf("--port=%d", port),
+			"--quiet",
+		},
+	}
+	return shell.RunCommandAndGetOutputE(t, cmd)
 }
 
 /*
 DeletePSA is a helper function which deletes the PSA range after the
 execution of the test.
 */
+
 func DeletePSA(t *testing.T, projectID string, networkName string, rangeName string) {
 	// Delete PSA IP range
 	time.Sleep(60 * time.Second)
@@ -159,7 +262,7 @@ func CreatePSA(t *testing.T, projectID string, networkName string, rangeName str
 	}
 	_, err := shell.RunCommandAndGetOutputE(t, cmd)
 	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
+		t.Errorf("===error %s encountered while executing %s", err, text)
 	}
 	// Create PSA range
 	text = "services"
@@ -169,7 +272,7 @@ func CreatePSA(t *testing.T, projectID string, networkName string, rangeName str
 	}
 	_, err = shell.RunCommandAndGetOutputE(t, cmd)
 	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
+		t.Errorf("===error %s encountered while executing %s", err, text)
 	}
 	time.Sleep(60 * time.Second)
 }
@@ -182,7 +285,7 @@ func GetProjectNumber(t *testing.T, projectID string) (string, error) {
 	}
 	output, err := shell.RunCommandAndGetOutputE(t, cmd)
 	if err != nil {
-		return "", fmt.Errorf("Error getting project number: %v", err)
+		return "", fmt.Errorf("error getting project number: %v", err)
 	}
 
 	// The gcloud command might output warnings before the actual project number,
@@ -190,7 +293,7 @@ func GetProjectNumber(t *testing.T, projectID string) (string, error) {
 	// non-empty line of the output.
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	if len(lines) == 0 {
-		return "", fmt.Errorf("No output from gcloud projects describe for project ID %s", projectID)
+		return "", fmt.Errorf("no output from gcloud projects describe for project ID %s", projectID)
 	}
 
 	// Get the last line and trim any surrounding single quotes
@@ -198,7 +301,7 @@ func GetProjectNumber(t *testing.T, projectID string) (string, error) {
 
 	// Basic validation that it looks like a number
 	if _, err := stdlib_strconv.ParseInt(projectNumber, 10, 64); err != nil {
-		return "", fmt.Errorf("Extracted project number '%s' is not a valid number. Full output: %s. Error: %v", projectNumber, output, err)
+		return "", fmt.Errorf("extracted project number '%s' is not a valid number. Full output: %s. Error: %v", projectNumber, output, err)
 	}
 
 	return projectNumber, nil
