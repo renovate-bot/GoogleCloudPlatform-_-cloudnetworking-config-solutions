@@ -10,3 +10,4 @@ go.sum
 **/*.log
 **/*plan*
 **/*.DS_Store
+__pycache__/
