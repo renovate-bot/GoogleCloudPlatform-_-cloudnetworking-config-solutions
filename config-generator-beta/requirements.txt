@@ -1,5 +1,6 @@
 # For testing
 pyfakefs
+PyYAML
 
 # For the generator scripts
 absl-py
