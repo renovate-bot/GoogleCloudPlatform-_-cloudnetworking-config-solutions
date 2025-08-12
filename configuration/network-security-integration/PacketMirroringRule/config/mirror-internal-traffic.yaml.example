@@ -1,0 +1,15 @@
+priority: <priority> #e.g. 1000
+project_id: <your-gcp-project-id> #e.g. "test-project-id"
+firewall_policy_name: <firewall-policy-name> #e.g. "fwp-consumer-pm-test-gks9hi"
+direction: <direction> #e.g. "INGRESS"
+security_profile_group: "organizations/<organization-id>/locations/global/securityProfileGroups/<security-profile-group-name>" #e.g. "organizations/123456789012/locations/global/securityProfileGroups/spg-pm-test-gks9hi"
+description: <description> #e.g. "Mirrors internal UDP traffic for inspection."
+action: <action-to-be-performed> #e.g. "mirror"
+match:
+  src_ip_ranges:
+    - <source-ip-range> #e.g. "10.20.10.0/24"
+  layer4_configs:
+    - ip_protocol: <ip-protocol> #e.g. "udp"
+      ports: <ports> #e.g. ["50051"]
+target_secure_tags:
+  - <secure-tag> #e.g. "tagValues/123456789"

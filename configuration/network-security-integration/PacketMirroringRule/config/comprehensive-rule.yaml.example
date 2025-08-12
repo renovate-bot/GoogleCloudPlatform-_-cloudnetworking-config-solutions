@@ -1,0 +1,22 @@
+priority: <priority> #e.g. 100
+project_id: <your-gcp-project-id> #e.g. "my-gcp-project-12345"
+firewall_policy_name: <firewall-policy-name> #e.g. "my-global-firewall-policy"
+direction: <direction> #e.g. "EGRESS"
+action: <action> #e.g. "mirror"
+description: <description> #e.g. "This rule mirrors all outbound HTTPS traffic from tagged servers for inspection."
+security_profile_group: "organizations/<organization-id>/locations/global/securityProfileGroups/<security-profile-group-name>" #e.g. "organizations/123456789012/locations/global/securityProfileGroups/my-mirroring-spg"
+disabled: <disabled-value-flag> #e.g. true
+tls_inspect: <tls-inspect-flag> #e.g. true
+target_secure_tags:
+  - <secure-tag> #e.g. "tagValues/1122334455" 
+  - <secure-tag> #e.g. "tagValues/6677889900"
+match:
+  src_ip_ranges:
+    - <source-ip-range> #e.g. "10.1.0.0/16"
+  dest_ip_ranges:
+    - <destination-ip-range> #e.g. "0.0.0.0/0"
+  layer4_configs:
+    - ip_protocol: <ip-protocol> #e.g. "tcp"
+      ports: <ports> #e.g. ["443", "8443"]
+    - ip_protocol: <ip-protocol> #e.g. "udp"
+      ports: <ports> #e.g. ["5000-5010"]
