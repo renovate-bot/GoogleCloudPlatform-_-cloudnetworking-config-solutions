@@ -1,0 +1,32 @@
+project_id: <your-project-id>
+dataset_id: data_reports
+dataset_name: Data Reports
+description: Confidential dataset
+location: EU
+
+access:
+  - role: roles/bigquery.dataViewer
+    group_by_email: <data-viewers@your-company.com>
+  - role: roles/bigquery.dataOwner
+    user_by_email: <data-owner@your-company.com>
+
+tables:
+  - table_id: dataset_cncs
+    description: Table containing raw data.
+    deletion_protection: true
+    labels:
+      data_sensitivity: high
+    schema: >
+      [
+        {
+          "name": "report_id",
+          "type": "STRING",
+          "mode": "REQUIRED",
+          "description": "Unique identifier for the report"
+        },
+        {
+          "name": "quarter",
+          "type": "STRING",
+          "mode": "NULLABLE"
+        }
+      ]

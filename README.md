@@ -27,7 +27,8 @@ The project is structured into the following folders:
               ├── gke
               ├── vectorsearch
               ├── vertex-ai-online-endpoints
-              └── mrc
+              ├── mrc
+              └── bigquery
           ├── consumer
               ├── cloudrun
               ├── gce
@@ -88,7 +89,7 @@ The project is structured into the following folders:
   * `01-organization`:  Manages organization-level policies for network resources.
   * `02-networking`: Manages VPCs, subnets, Cloud HA VPN and other core networking components like PSA, SCP, Cloud NAT.
   * `03-security`:  Configures firewalls rules, firewall policies and Google Managed SSL certificates.
-  * `04-producer`: Implements producer services like AlloyDB, Memorystore for Redis clusters, and Cloud SQL.
+  * `04-producer`: Implements producer services like AlloyDB, Memorystore for Redis clusters, BigQuery and Cloud SQL.
   * `05-producer-connectivity`: Implements networking services like Private Service Connectivity.
   * `06-consumer`: Implements consumer services like Google Compute Engine instances, Cloud Run, Workbench, AppEngine, Managed and Unmanaged Instance Groups.
   * `07-consumer-load-balancing`: Implements load balancing services. As a part of Load Balancing, the following Load Balancers are presently supported : External Application Load Balancer, External and Internal Network Passthrough Load Balancer.

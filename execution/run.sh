@@ -23,7 +23,7 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 # Define valid stages to be accepted by the -s flag
-valid_stages="all organization networking networking/ncc networking/firewallendpoint security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/external load-balancing/network/passthrough/external"
+valid_stages="all organization networking networking/ncc networking/firewallendpoint security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer/bigquery producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/external load-balancing/network/passthrough/external"
 
 # Define valid Terraform commands to be accepted by the -tf or --tfcommand flag
 valid_tf_commands="init apply apply-auto-approve destroy destroy-auto-approve init-apply init-apply-auto-approve"
@@ -49,6 +49,7 @@ stage_path_map=(
     "producer/gke=04-producer/GKE"
     "producer/vectorsearch=04-producer/VectorSearch"
     "producer/onlineendpoint=04-producer/Vertex-AI-Online-Endpoints"
+    "producer/bigquery=04-producer/BigQuery"
     "producer-connectivity=05-producer-connectivity"
     "consumer/gce=06-consumer/GCE"
     "consumer/serverless/cloudrun/job=06-consumer/Serverless/CloudRun/Job"
@@ -85,6 +86,7 @@ stagewise_tfvar_path_map=(
     "04-producer/GKE=../../../configuration/producer/GKE/gke.tfvars"
     "04-producer/VectorSearch=../../../configuration/producer/VectorSearch/vectorsearch.tfvars"
     "04-producer/Vertex-AI-Online-Endpoints=../../../configuration/producer/Vertex-AI-Online-Endpoints/vertex-ai-online-endpoints.tfvars"
+    "04-producer/BigQuery=../../../configuration/producer/BigQuery/bigquery.tfvars"
     "05-producer-connectivity=../../configuration/producer-connectivity.tfvars"
     "06-consumer/GCE=../../../configuration/consumer/GCE/gce.tfvars"
     "06-consumer/Serverless/CloudRun/Job=../../../../../configuration/consumer/Serverless/CloudRun/Job/cloudrunjob.tfvars"
@@ -129,6 +131,7 @@ stage_wise_description_map=(
   "producer/cloudsql=Executes 04-producer/CloudSQL stage, manages CloudSQL instance."
   "producer/gke=Executes 04-producer/GKE stage, manages GKE clusters."
   "producer/vectorsearch=Executes 04-producer/VectorSearch stage, manages Vector Search instances."
+  "producer/bigquery=Executes 04-producer/BigQuery stage, manages BigQuery instance."
   "producer/onlineendpoint=Executes 04-producer/Vertex-AI-Online-Endpoints stage, manages Online endpoints."
   "producer-connectivity=Executes 05-producer-connectivity stage, manages PSC for supported services."
   "consumer/gce=Executes 06-consumer/GCE stage, manages GCE instance."

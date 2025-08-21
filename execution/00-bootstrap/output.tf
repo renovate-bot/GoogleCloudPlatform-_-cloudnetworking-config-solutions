@@ -58,6 +58,11 @@ output "producer_gke_email" {
   value       = module.gke_producer.iam_email
 }
 
+output "producer_bigquery_email" {
+  description = "BigQuery producer stage service account IAM email."
+  value       = module.bigquery_producer.iam_email
+}
+
 output "producer_connectivity_email" {
   description = "Producer Connectivity stage service account IAM email."
   value       = module.producer_connectivity.iam_email
