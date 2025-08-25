@@ -1,0 +1,21 @@
+# Creates consumer-facing resources and attaches them to an EXISTING deployment group:
+# (Existing DG) -> Endpoint Group -> Association
+
+# Required Full Resource Links
+consumer_network_link: "projects/<consumer-gcp-project-id>/global/networks/<consumer-vpc-name>"
+
+# Link to Existing Resources
+# This ID must point to a deployment group that already exists (e.g., the one from producer-side-only.yml)
+existing_deployment_group_id: "projects/<deployment-group-gcp-project-id>/locations/global/mirroringDeploymentGroups/<deployment-group-name>"
+
+# Resource Definitions
+endpoint_group:
+  create: <true or false> #e.g. true
+  endpoint_group_project_id: <endpoint-group-project-id> #e.g. "egp-test-project"
+  name: <name> #e.g. "ha-multi-consumer-eg"
+  description: <description> #e.g."Endpoint group for multiple consumer VPCs"
+
+endpoint_associations:
+  - endpoint_association_project_id: <endpoint-association-project-id> #e.g. "ea-test-project1"
+    name: <name> #e.g."assoc-to-consumer-vpc1"
+    consumer_network_link: <consumer-network-link> #e.g."projects/endpoint-association1-gcp-project-id/global/networks/test-consumer-vpc1"

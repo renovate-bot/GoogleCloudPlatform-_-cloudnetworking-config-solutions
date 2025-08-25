@@ -132,9 +132,10 @@ module "dns_response_policy" {
 *********************************************/
 
 module "security" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
-  project_id = var.bootstrap_project_id
-  name       = var.security_sa_name
+  source          = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  project_id      = var.bootstrap_project_id
+  organization_id = var.organization_id
+  name            = var.security_sa_name
   iam = {
     "roles/iam.serviceAccountTokenCreator" = var.security_administrator
   }
@@ -543,6 +544,37 @@ module "umig_consumer" {
     (var.network_serviceproject_id) = [
       "roles/compute.instanceAdmin.v1",
       "roles/iam.serviceAccountUser",
+    ]
+  }
+  iam_storage_roles = {
+    (module.google_storage_bucket.name) = [
+      "roles/storage.objectAdmin"
+    ]
+  }
+}
+
+/********************************************
+ Service Account used to run Network Security Integration
+*********************************************/
+
+module "network_security_integration" {
+  source          = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v31.1.0"
+  project_id      = var.bootstrap_project_id
+  organization_id = var.organization_id
+  name            = var.nsi_sa_name
+  iam = {
+    "roles/iam.serviceAccountTokenCreator" = var.nsi_administrator
+  }
+  iam_project_roles = {
+    (var.network_hostproject_id) = [
+      "roles/networksecurity.packetMirroringAdmin",
+      "roles/networksecurity.securityProfileAdmin",
+    ]
+  }
+  iam_organization_roles = {
+    (var.organization_id) = [
+      "roles/resourcemanager.organizationViewer",
+      "roles/networksecurity.securityProfileAdmin",
     ]
   }
   iam_storage_roles = {

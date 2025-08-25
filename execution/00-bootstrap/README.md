@@ -34,6 +34,7 @@ This minimal example includes only the essential fields required to execute the 
   
   ```
   folder_id                             = ""
+  organization_id                       = ""
   bootstrap_project_id                  = ""
   network_hostproject_id                = ""
   network_serviceproject_id             = "" // <service(producer/consumer)-project-id>
@@ -60,6 +61,7 @@ This minimal example includes only the essential fields required to execute the 
   consumer_vpc_connector_administrator = ["user:user-example@example.com"]
   consumer_appengine_administrator     = ["user:user-example@example.com"]
   consumer_lb_administrator            = ["user:lb-user-example@example.com"]
+  nsi_administrator                    = ["user:nsi-user-example@example.com"]
   ```
 
 
@@ -91,6 +93,7 @@ This minimal example includes only the essential fields required to execute the 
 | <a name="module_google_storage_bucket"></a> [google\_storage\_bucket](#module\_google\_storage\_bucket) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/gcs | v31.1.0 |
 | <a name="module_mig_consumer"></a> [mig\_consumer](#module\_mig\_consumer) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
 | <a name="module_mrc_producer"></a> [mrc\_producer](#module\_mrc\_producer) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
+| <a name="module_network_security_integration"></a> [network\_security\_integration](#module\_network\_security\_integration) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
 | <a name="module_networking"></a> [networking](#module\_networking) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
 | <a name="module_organization"></a> [organization](#module\_organization) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v34.1.0 |
 | <a name="module_producer_connectivity"></a> [producer\_connectivity](#module\_producer\_connectivity) | github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account | v31.1.0 |
@@ -127,6 +130,8 @@ This minimal example includes only the essential fields required to execute the 
 | <a name="input_network_serviceproject_id"></a> [network\_serviceproject\_id](#input\_network\_serviceproject\_id) | Google Cloud Project ID to be used to create Google Cloud resources like consumer and producer services. | `string` | n/a | yes |
 | <a name="input_networking_administrator"></a> [networking\_administrator](#input\_networking\_administrator) | List of Members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com) | `list(string)` | <pre>[<br/>  ""<br/>]</pre> | no |
 | <a name="input_networking_sa_name"></a> [networking\_sa\_name](#input\_networking\_sa\_name) | Name of the service account to create for networking stage. | `string` | `"networking-sa"` | no |
+| <a name="input_nsi_administrator"></a> [nsi\_administrator](#input\_nsi\_administrator) | List of Network Security Integration administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com) | `list(string)` | <pre>[<br/>  ""<br/>]</pre> | no |
+| <a name="input_nsi_sa_name"></a> [nsi\_sa\_name](#input\_nsi\_sa\_name) | Name of the service account to create for Network Security Integration stage. | `string` | `"nsi-sa"` | no |
 | <a name="input_organization_administrator"></a> [organization\_administrator](#input\_organization\_administrator) | List of Members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com) | `list(string)` | <pre>[<br/>  ""<br/>]</pre> | no |
 | <a name="input_organization_sa_name"></a> [organization\_sa\_name](#input\_organization\_sa\_name) | Name of the service account to create for organization stage. | `string` | `"organization-sa"` | no |
 | <a name="input_producer_alloydb_administrator"></a> [producer\_alloydb\_administrator](#input\_producer\_alloydb\_administrator) | List of AlloyDB administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com) | `list(string)` | <pre>[<br/>  ""<br/>]</pre> | no |
@@ -160,6 +165,7 @@ This minimal example includes only the essential fields required to execute the 
 | <a name="output_dns_managed_zones_email"></a> [dns\_managed\_zones\_email](#output\_dns\_managed\_zones\_email) | DNS Managed Zones stage service account IAM email. |
 | <a name="output_dns_response_policy_email"></a> [dns\_response\_policy\_email](#output\_dns\_response\_policy\_email) | DNS Response Policy stage service account IAM email. |
 | <a name="output_networking_email"></a> [networking\_email](#output\_networking\_email) | Networking stage service account IAM email. |
+| <a name="output_nsi_email"></a> [nsi\_email](#output\_nsi\_email) | Network Security Integration stage service account IAM email. |
 | <a name="output_organization_email"></a> [organization\_email](#output\_organization\_email) | Organization stage service account IAM email. |
 | <a name="output_producer_alloydb_email"></a> [producer\_alloydb\_email](#output\_producer\_alloydb\_email) | AlloyDB producer stage service account IAM email. |
 | <a name="output_producer_cloudsql_email"></a> [producer\_cloudsql\_email](#output\_producer\_cloudsql\_email) | CloudSQL producer stage service account IAM email. |

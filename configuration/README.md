@@ -102,7 +102,15 @@ This directory serves as a centralized repository for all Terraform configuratio
         - config
           - instance-expanded.yaml.example
           - instance-lite.yaml.example
-
+- 08-network-security-integration stage
+  - OutOfBand
+    - config
+      - full-setup.yaml.example
+    - nsioutofband.tfvars
+  - SecurityProfile
+    - config
+      - intercept-profile-with-group.yaml.example
+    - securityprofile.tfvars
 
 # Usage
 
@@ -148,6 +156,7 @@ This would run the terraform plan based on the values for the variables declared
 
 ```
 folder_id                             = ""
+organization_id                       = ""
 bootstrap_project_id                  = ""
 network_hostproject_id                = ""
 network_serviceproject_id             = ""
@@ -169,6 +178,7 @@ consumer_cloudrun_administrator     = ["user:cloudrun-user-example@example.com"]
 consumer_mig_administrator          = ["user:mig-user-example@example.com"]
 consumer_umig_administrator         = ["user:umig-user-example@example.com"]
 consumer_lb_administrator           = ["user:lb-user-example@example.com"]
+nsi_administrator                    = ["user:nsi-user-example@example.com"]
 ```
 
 ## 01-organization
@@ -195,6 +205,7 @@ consumer_lb_administrator           = ["user:lb-user-example@example.com"]
         "artifactregistry.googleapis.com",
         "notebooks.googleapis.com",
         "vpcaccess.googleapis.com",
+        "networksecurity.googleapis.com",
         "bigquery.googleapis.com",
       ],
     },
@@ -347,6 +358,10 @@ Consumer specific configuration examples can be found under the `/config` folder
 
 Consumer load balancing specific configuration examples can be found under the `/config` folder of that specific load balancer. Such as for Application External Load Balancer, the example would be in the folder `configuration/consumer-load-balancing/Application/External/config/`.
 
+## 08-network-security-integration
+
+Network security integration specific configuration examples can be found under the `/config` folder of that specific integration type. Such as for Out-Of-Band Network Security Integration, the example would be in the folder `configuration/network-security-integration/OutOfBand/config/`.
+
 ## Considerations
 
-- Sensitive Data: If your configuration files contain securrely handle sensitive values (e.g., API keys) and ensure they are securely stored. We strong recommend to not store senstive information in plain text and suggest you to carefully manage sensitive information.
+- Sensitive Data: If your configuration files contain securely handle sensitive values (e.g., API keys) and ensure they are securely stored. We strong recommend to not store sensitive information in plain text and suggest you to carefully manage sensitive information.

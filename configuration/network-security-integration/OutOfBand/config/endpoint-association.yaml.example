@@ -1,0 +1,11 @@
+# Creates only a Mirroring Endpoint Group Association.
+# This is useful for mirroring traffic to a new consumer VPC.
+
+# You must provide the ID of the parent Endpoint Group that already exists.
+existing_endpoint_group_id: "projects/<endpoint-group-gcp-project-id>/locations/global/mirroringEndpointGroups/<endpoint-group-name>" # <-- Replace
+
+# List of associations to create under the single endpoint_group
+endpoint_associations:
+  - endpoint_association_project_id: <endpoint-association-project-id> #e.g. "ea-test-project1"
+    name: <name> #e.g."assoc-to-consumer-vpc1"
+    consumer_network_link: <consumer-network-link> #e.g."projects/endpoint-association1-gcp-project-id/global/networks/test-consumer-vpc1"

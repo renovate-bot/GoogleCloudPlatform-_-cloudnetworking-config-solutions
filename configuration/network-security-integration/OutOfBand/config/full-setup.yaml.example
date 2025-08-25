@@ -1,0 +1,38 @@
+deployment_group:
+  create: <true or false> #e.g. true
+  deployment_group_project_id: <deployment-group-project-id> #e.g. "dgp-test-project"
+  name: <name> #e.g."ha-multi-consumer-dg"
+  description: <description> #e.g."Deployment Group for us-central1 with HA collectors"
+  producer_network_link: <producer-network-link> #e.g."projects/deployment-group-gcp-project-id/global/networks/test-producer-vpc1"
+
+endpoint_group:
+  create: <true or false> #e.g. true
+  endpoint_group_project_id: <endpoint-group-project-id> #e.g. "egp-test-project"
+  name: <name> #e.g. "ha-multi-consumer-eg"
+  description: <description> #e.g."Endpoint group for multiple consumer VPCs"
+
+# List of deployments to create under the single deployment_group
+deployments:
+  - deployment_project_id: <deployment-project-id> #e.g. "dp-test-project1"
+    name: <name> #e.g."ha-deployment-us-central1-a"
+    location: <location> #e.g."us-central1-a"
+    # Point to the first forwarding rule
+    forwarding_rule_link: <forwarding-rule-link> #e.g."projects/deployment1-gcp-project-id/regions/us-central1/forwardingRules/collector-fr-us-a"
+    description: <description> #e.g."Mirroring deployment for zone A"
+
+  - deployment_project_id: <deployment-project-id> #e.g. "dp-test-project2"
+    name: <name> #e.g."ha-deployment-us-central1-b"
+    location: <location> #e.g."us-central1-b"
+    # Point to the second forwarding rule
+    forwarding_rule_link: <forwarding-rule-link> #e.g."projects/deployment2-gcp-project-id/regions/us-central1/forwardingRules/collector-fr-us-b"
+    description: <description> #e.g."Mirroring deployment for zone B"
+
+# List of associations to create under the single endpoint_group
+endpoint_associations:
+  - endpoint_association_project_id: <endpoint-association-project-id> #e.g. "ea-test-project1"
+    name: <name> #e.g."assoc-to-consumer-vpc1"
+    consumer_network_link: <consumer-network-link> #e.g."projects/endpoint-association1-gcp-project-id/global/networks/test-consumer-vpc1"
+
+  - endpoint_association_project_id: <endpoint-association-project-id> #e.g. "ea-test-project2"
+    name: <name> #e.g."assoc-to-consumer-vpc2"
+    consumer_network_link: <consumer-network-link> #e.g."projects/endpoint-association2-gcp-project-id/global/networks/test-consumer-vpc2"

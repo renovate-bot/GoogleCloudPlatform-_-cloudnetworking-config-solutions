@@ -117,3 +117,8 @@ output "consumer_umig_email" {
   description = "UMIG consumer stage service account IAM email."
   value       = module.umig_consumer.iam_email
 }
+
+output "nsi_email" {
+  description = "Network Security Integration stage service account IAM email."
+  value       = module.network_security_integration.iam_email
+}

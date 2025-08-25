@@ -1,0 +1,9 @@
+# Creates only the top-level Deployment Group.
+# This can act as a parent container for deployments that will be created later.
+
+deployment_group:
+  create: <true or false> #e.g. true
+  deployment_group_project_id: <deployment-group-project-id> #e.g. "dgp-test-project"
+  name: <name> #e.g."ha-multi-consumer-dg"
+  description: <description> #e.g."Deployment Group for us-central1 with HA collectors"
+  producer_network_link: <producer-network-link> #e.g."projects/deployment-group-gcp-project-id/global/networks/test-producer-vpc1"

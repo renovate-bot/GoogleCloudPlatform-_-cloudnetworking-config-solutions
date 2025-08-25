@@ -16,15 +16,3 @@ terraform {
     impersonate_service_account = "ENTER_TF_SERVICE_ACCOUNT"
   }
 }
-
-provider "google" {
-  project               = "ENTER_TF_VAR_PROJECT_ID"
-  billing_project       = "ENTER_TF_VAR_BILLING_PROJECT_ID"
-  user_project_override = true
-}
-
-provider "google-beta" {
-  project               = "ENTER_TF_VAR_PROJECT_ID"
-  billing_project       = "ENTER_TF_VAR_BILLING_PROJECT_ID"
-  user_project_override = true
-}
