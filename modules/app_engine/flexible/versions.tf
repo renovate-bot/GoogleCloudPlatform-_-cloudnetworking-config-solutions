@@ -17,7 +17,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 6.20.0, < 7.0.0" // Use a more general constraint.  See explanation below.
+      version = "< 8.0.0" // Use a more general constraint.  See explanation below.
     }
     google-beta = {
       source  = "hashicorp/google-beta"
