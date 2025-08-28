@@ -1,0 +1,9 @@
+project_id: your-project-id
+dataset_id: ds_from_vm_9313
+dataset_name: ds_from_vm_9313
+location: US
+tables:
+- table_id: test_table
+  description: A test table for integration tests.
+  schema: '[{"name": "id", "type": "STRING", "mode": "REQUIRED"}, {"name": "data",
+    "type": "STRING", "mode": "NULLABLE"}]'
