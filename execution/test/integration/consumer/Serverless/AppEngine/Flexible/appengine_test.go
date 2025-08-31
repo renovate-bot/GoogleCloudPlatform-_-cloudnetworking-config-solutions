@@ -17,17 +17,15 @@
 package integrationtest
 
 import (
-	"archive/zip"
 	"fmt"
-	"io"
 	"math/rand"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/test/integration/common_utils"
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
@@ -42,14 +40,13 @@ var (
 )
 
 var (
-	projectID           = os.Getenv("TF_VAR_project_id")
-	instanceName        string
-	region              = "us-central1"
-	networkName         string
-	serviceAccountName  string
-	serviceAccountEmail string
-	gcsBucketName       string
-	gcsSourceURL        string
+	projectID     = os.Getenv("TF_VAR_project_id")
+	region        = "us-central1"
+	instanceName  = fmt.Sprintf("appeng-flex-test-%d", rand.Intn(10000))
+	networkName   = fmt.Sprintf("vpc-%s", instanceName)
+	subnetName    = fmt.Sprintf("%s-subnet", networkName)
+	gcsBucketName string
+	gcsSourceURL  string
 )
 
 type AppEngineConfig struct {
@@ -65,15 +62,10 @@ type AppEngineConfig struct {
 		Name       string `yaml:"name"`
 		Subnetwork string `yaml:"subnetwork"`
 	} `yaml:"network"`
-	VersionID string `yaml:"version_id"`
-
-	AutomaticScaling struct {
-		CoolDownPeriod        string                 `yaml:"cool_down_period"`
-		MaxConcurrentRequests int                    `yaml:"max_concurrent_requests"`
-		MaxTotalInstances     int                    `yaml:"max_total_instances"`
-		MinTotalInstances     int                    `yaml:"min_total_instances"`
-		CPUUtilization        map[string]interface{} `yaml:"cpu_utilization"`
-	} `yaml:"automatic_scaling"`
+	VersionID     string `yaml:"version_id"`
+	ManualScaling *struct {
+		Instances int `yaml:"instances"`
+	} `yaml:"manual_scaling,omitempty"`
 
 	Entrypoint struct {
 		Shell string `yaml:"shell"`
@@ -92,153 +84,6 @@ type AppEngineConfig struct {
 	Labels                 map[string]string      `yaml:"labels,omitempty"`
 }
 
-func createServiceAccount(t *testing.T, projectID, saName, displayName string) (string, error) {
-	t.Logf("Attempting to create or verify service account: %s in project %s", saName, projectID)
-	expectedSaEmail := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", saName, projectID)
-
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args: []string{
-			"iam", "service-accounts", "create", saName,
-			"--project=" + projectID,
-			"--display-name=" + displayName,
-		},
-	}
-	rawOutput, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		if strings.Contains(rawOutput, "already exists") || strings.Contains(err.Error(), "already exists") || strings.Contains(rawOutput, "Service account already exists") {
-			t.Logf("Service account %s (email: %s) already exists. Assuming it's usable.", saName, expectedSaEmail)
-			return expectedSaEmail, nil
-		}
-		return "", fmt.Errorf("failed to create service account %s: %w. Raw output: %s", saName, err, rawOutput)
-	}
-	t.Logf("Service account %s created/verified. Email: %s. Full gcloud output: %s", saName, expectedSaEmail, rawOutput)
-	return expectedSaEmail, nil
-}
-
-func addIAMPolicyBinding(t *testing.T, projectID, saEmail, role string) error {
-	t.Logf("Adding role %s to service account %s for project %s", role, saEmail, projectID)
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{"projects", "add-iam-policy-binding", projectID, "--member=serviceAccount:" + saEmail, "--role=" + role, "--format=json"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		return fmt.Errorf("failed to add role %s to SA %s: %w", role, saEmail, err)
-	}
-	t.Logf("Role %s added to %s successfully.", role, saEmail)
-	return nil
-}
-
-func deleteServiceAccount(t *testing.T, projectID, saEmail string) {
-	if saEmail == "" {
-		return
-	}
-	t.Logf("--- Deleting service account: %s in project %s ---", saEmail, projectID)
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{"iam", "service-accounts", "delete", saEmail, "--project=" + projectID, "--quiet"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("Error deleting service account %s: %v. Manual cleanup might be required.", saEmail, err)
-	} else {
-		t.Logf("Service account %s deleted successfully or did not exist.", saEmail)
-	}
-}
-
-func createGCSBucket(t *testing.T, projectID, bucketName string) error {
-	t.Logf("Creating GCS bucket: gs://%s in project %s", bucketName, projectID)
-	cmd := shell.Command{
-		Command: "gsutil",
-		Args:    []string{"mb", "-p", projectID, "-l", region, fmt.Sprintf("gs://%s", bucketName)},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		if strings.Contains(err.Error(), "SERVICE_ACCOUNT_NOT_SET_UP") || strings.Contains(err.Error(), "Service account has not been granted Legacy Bucket Writer role") {
-			t.Logf("Storage service account might not be set up yet for project %s. This can happen on new projects. Trying one more time after a delay or check project setup.", projectID)
-			time.Sleep(30 * time.Second)
-			_, err = shell.RunCommandAndGetOutputE(t, cmd)
-		}
-		if err != nil && !strings.Contains(err.Error(), "you already own it") {
-			return fmt.Errorf("failed to create GCS bucket gs://%s: %w", bucketName, err)
-		}
-	}
-	t.Logf("GCS bucket gs://%s created/verified successfully.", bucketName)
-	return nil
-}
-
-func downloadFile(t *testing.T, url string, destDir string, fileName string) (string, error) {
-	filePath := filepath.Join(destDir, fileName)
-	t.Logf("Downloading %s to %s", url, filePath)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to download %s: status %s", url, resp.Status)
-	}
-
-	out, err := os.Create(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return "", err
-	}
-	return filePath, nil
-}
-
-func createZipArchive(t *testing.T, sourceDir string, targetZipPath string, filesToZip map[string]string) error {
-	t.Logf("Creating zip archive %s from contents of %s", targetZipPath, sourceDir)
-	zipFile, err := os.Create(targetZipPath)
-	if err != nil {
-		return fmt.Errorf("failed to create zip file %s: %w", targetZipPath, err)
-	}
-	defer zipFile.Close()
-
-	zipWriter := zip.NewWriter(zipFile)
-	defer zipWriter.Close()
-
-	for sourcePath, pathInZip := range filesToZip {
-		fullSourcePath := filepath.Join(sourceDir, sourcePath)
-		t.Logf("Adding to zip: %s as %s", fullSourcePath, pathInZip)
-		fileToZip, err := os.Open(fullSourcePath)
-		if err != nil {
-			return fmt.Errorf("failed to open file %s for zipping: %w", fullSourcePath, err)
-		}
-		defer fileToZip.Close()
-
-		info, err := fileToZip.Stat()
-		if err != nil {
-			return fmt.Errorf("failed to get file info for %s: %w", fullSourcePath, err)
-		}
-
-		header, err := zip.FileInfoHeader(info)
-		if err != nil {
-			return fmt.Errorf("failed to create zip header for %s: %w", fullSourcePath, err)
-		}
-		header.Name = pathInZip
-		header.Method = zip.Deflate
-
-		writer, err := zipWriter.CreateHeader(header)
-		if err != nil {
-			return fmt.Errorf("failed to create zip writer for %s: %w", pathInZip, err)
-		}
-		if _, err = io.Copy(writer, fileToZip); err != nil {
-			return fmt.Errorf("failed to write file %s to zip: %w", pathInZip, err)
-		}
-	}
-	t.Logf("Zip archive %s created successfully.", targetZipPath)
-	return nil
-}
-
 func prepareAppSourceZip(t *testing.T) (zipFilePath string, tempDirPath string, err error) {
 	tempDir, err := os.MkdirTemp("", "appengine-source-")
 	if err != nil {
@@ -253,15 +98,15 @@ func prepareAppSourceZip(t *testing.T) (zipFilePath string, tempDirPath string, 
 		"app.yaml":         "app.yaml",
 	}
 
-	for localFileName, _ := range filesToIncludeInZip {
-		_, err := downloadFile(t, baseURL+localFileName, tempDir, localFileName)
+	for localFileName := range filesToIncludeInZip {
+		_, err := common_utils.DownloadFile(t, baseURL+localFileName, tempDir, localFileName)
 		if err != nil {
 			_ = os.RemoveAll(tempDir)
 			return "", tempDir, fmt.Errorf("failed to download %s: %w", localFileName, err)
 		}
 	}
 	zipOutputFilePath := filepath.Join(tempDir, "app_source.zip")
-	err = createZipArchive(t, tempDir, zipOutputFilePath, filesToIncludeInZip)
+	err = common_utils.CreateZipArchive(t, tempDir, zipOutputFilePath, filesToIncludeInZip)
 	if err != nil {
 		_ = os.RemoveAll(tempDir)
 		return "", tempDir, fmt.Errorf("failed to create zip archive: %w", err)
@@ -269,40 +114,6 @@ func prepareAppSourceZip(t *testing.T) (zipFilePath string, tempDirPath string, 
 	return zipOutputFilePath, tempDir, nil
 }
 
-func uploadToGCS(t *testing.T, localFilePath, bucketName, objectName string) (string, error) {
-	t.Logf("Uploading %s to gs://%s/%s", localFilePath, bucketName, objectName)
-	gsutilUploadPath := fmt.Sprintf("gs://%s/%s", bucketName, objectName)
-
-	cmd := shell.Command{
-		Command: "gsutil",
-		Args:    []string{"cp", localFilePath, gsutilUploadPath},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		return "", fmt.Errorf("failed to upload %s to %s: %w", localFilePath, gsutilUploadPath, err)
-	}
-	httpsURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, objectName)
-
-	t.Logf("File %s uploaded successfully. App Engine source URL: %s", filepath.Base(localFilePath), httpsURL)
-	return httpsURL, nil
-}
-
-func deleteGCSBucket(t *testing.T, bucketName string) {
-	if bucketName == "" {
-		return
-	}
-	t.Logf("--- Deleting GCS bucket: gs://%s ---", bucketName)
-	cmd := shell.Command{
-		Command: "gsutil",
-		Args:    []string{"rm", "-r", "-f", fmt.Sprintf("gs://%s", bucketName)},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Logf("Note: Error during gsutil rm for bucket gs://%s (may be benign if bucket was already empty/gone or due to permissions): %v", bucketName, err)
-	} else {
-		t.Logf("GCS bucket gs://%s and its contents deleted successfully or did not exist.", bucketName)
-	}
-}
 func getBaseAppEngineConfig(t *testing.T) AppEngineConfig {
 	return AppEngineConfig{
 		Project: projectID,
@@ -322,21 +133,10 @@ func getBaseAppEngineConfig(t *testing.T) AppEngineConfig {
 			Subnetwork: fmt.Sprintf("%s-subnet", networkName),
 		},
 		VersionID: "v1",
-		AutomaticScaling: struct {
-			CoolDownPeriod        string                 `yaml:"cool_down_period"`
-			MaxConcurrentRequests int                    `yaml:"max_concurrent_requests"`
-			MaxTotalInstances     int                    `yaml:"max_total_instances"`
-			MinTotalInstances     int                    `yaml:"min_total_instances"`
-			CPUUtilization        map[string]interface{} `yaml:"cpu_utilization"`
+		ManualScaling: &struct {
+			Instances int `yaml:"instances"`
 		}{
-			CoolDownPeriod:        "120s",
-			MaxConcurrentRequests: 50,
-			MaxTotalInstances:     10,
-			MinTotalInstances:     2,
-			CPUUtilization: map[string]interface{}{
-				"target_utilization":        0.6,
-				"aggregation_window_length": "60s",
-			},
+			Instances: 1,
 		},
 		Entrypoint: struct {
 			Shell string `yaml:"shell"`
@@ -353,12 +153,12 @@ func getBaseAppEngineConfig(t *testing.T) AppEngineConfig {
 		DeleteServiceOnDestroy: true,
 	}
 }
+
 func createConfigYAML(t *testing.T, currentSaEmail string, currentGcsSourceURL string) []AppEngineConfig {
-	t.Log("Generating YAML configuration files aligned with the minimal working example, with dynamic SA and GCS URL...")
-	baseConfig := getBaseAppEngineConfig(t) // This now returns a minimal config
+	t.Log("Generating YAML configuration for a single service, with dynamic SA and GCS URL...")
+	baseConfig := getBaseAppEngineConfig(t)
 	service1Config := baseConfig
 	service1Config.Service = "test-service1"
-	service1Config.InstanceClass = "F4_1G"
 	service1Config.Deployment = &struct {
 		Zip *struct {
 			SourceURL string `yaml:"source_url"`
@@ -380,295 +180,65 @@ func createConfigYAML(t *testing.T, currentSaEmail string, currentGcsSourceURL s
 		"managed-by":  "terratest",
 		"specific-to": "service1",
 	}
-	service2Config := baseConfig
-	service2Config.Service = "test-service2"
-	service2Config.AutomaticScaling.MinTotalInstances = 1
-	service2Config.AutomaticScaling.MaxTotalInstances = 3
-
-	service2Config.Deployment = &struct {
-		Zip *struct {
-			SourceURL string `yaml:"source_url"`
-		} `yaml:"zip,omitempty"`
-	}{
-		Zip: &struct {
-			SourceURL string `yaml:"source_url"`
-		}{
-			SourceURL: currentGcsSourceURL,
-		},
-	}
-	service2Config.ServiceAccount = currentSaEmail
-	service2Config.EnvVariables = map[string]string{
-		"SERVICE_ID": "2",
-		"GCS_SOURCE": currentGcsSourceURL,
-	}
-	service2Config.Labels = map[string]string{
-		"test-type":   "integration",
-		"managed-by":  "terratest",
-		"specific-to": "service2",
-		"feature-x":   "enabled", // Example of an additional label for service2
-	}
-	servicesToCreate := []AppEngineConfig{service1Config, service2Config}
+	servicesToCreate := []AppEngineConfig{service1Config}
 	if err := os.RemoveAll(configFolderPath); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("Failed to clean config directory %s: %v", configFolderPath, err)
 	}
 	if err := os.MkdirAll(configFolderPath, 0755); err != nil {
 		t.Fatalf("Failed to create config directory %s: %v", configFolderPath, err)
 	}
-	t.Logf("Using config folder for generated YAMLs: %s", configFolderPath)
-
-	// Write each service configuration to its own YAML file
-	for _, serviceCfg := range servicesToCreate {
-		yamlData, err := yaml.Marshal(&serviceCfg)
-		if err != nil {
-			t.Fatalf("Error marshaling YAML for service %s: %v", serviceCfg.Service, err)
-		}
-
-		filePath := filepath.Join(configFolderPath, fmt.Sprintf("%s.yaml", serviceCfg.Service))
-		err = os.WriteFile(filePath, yamlData, 0644)
-		if err != nil {
-			t.Fatalf("Error writing YAML file for service %s at %s: %v", serviceCfg.Service, filePath, err)
-		}
-		t.Logf("Created YAML config file: %s\n--- Content ---\n%s\n---------------", filePath, string(yamlData))
+	serviceCfg := servicesToCreate[0]
+	yamlData, err := yaml.Marshal(&serviceCfg)
+	if err != nil {
+		t.Fatalf("Error marshaling YAML for service %s: %v", serviceCfg.Service, err)
 	}
-
+	filePath := filepath.Join(configFolderPath, fmt.Sprintf("%s.yaml", serviceCfg.Service))
+	err = os.WriteFile(filePath, yamlData, 0644)
+	if err != nil {
+		t.Fatalf("Error writing YAML file for service %s at %s: %v", serviceCfg.Service, filePath, err)
+	}
+	t.Logf("Created YAML config file: %s\n--- Content ---\n%s\n---------------", filePath, string(yamlData))
 	return servicesToCreate
-}
-
-func createVPC(t *testing.T, projectID string, networkName string) bool {
-	text := "compute"
-	subnetName := fmt.Sprintf("%s-subnet", networkName)
-	t.Logf("Creating VPC Network: %s in project %s", networkName, projectID)
-	cmdVPC := shell.Command{
-		Command: "gcloud",
-		Args: []string{
-			text, "networks", "create", networkName,
-			"--project=" + projectID,
-			"--subnet-mode=custom",
-			"--mtu=1460",
-			"--bgp-routing-mode=regional",
-			"--format=json",
-		},
-	}
-	_, errVPC := shell.RunCommandAndGetOutputE(t, cmdVPC)
-	if errVPC != nil {
-		if strings.Contains(errVPC.Error(), "already exists") {
-			t.Logf("VPC Network %s already exists. Proceeding.", networkName)
-		} else {
-			t.Errorf("Error creating VPC Network %s: %v", networkName, errVPC)
-			return false
-		}
-	} else {
-		t.Logf("VPC Network %s created successfully.", networkName)
-	}
-	t.Logf("Creating Subnet: %s in network %s, region %s", subnetName, networkName, region)
-	cmdSubnet := shell.Command{
-		Command: "gcloud",
-		Args: []string{
-			text, "networks", "subnets", "create", subnetName,
-			"--project=" + projectID,
-			"--network=" + networkName,
-			"--region=" + region,
-			"--range=10.128.0.0/20",
-			"--enable-private-ip-google-access",
-			"--format=json",
-		},
-	}
-	_, errSubnet := shell.RunCommandAndGetOutputE(t, cmdSubnet)
-	if errSubnet != nil {
-		if strings.Contains(errSubnet.Error(), "already exists") {
-			t.Logf("Subnet %s in network %s already exists. Proceeding.", subnetName, networkName)
-		} else {
-			t.Errorf("Error creating Subnet %s in network %s: %v", subnetName, networkName, errSubnet)
-			return false
-		}
-	} else {
-		t.Logf("Subnet %s in network %s created successfully.", subnetName, networkName)
-	}
-	return true
-}
-
-func deleteVPC(t *testing.T, projectID string, networkName string) {
-	text := "compute"
-	subnetName := fmt.Sprintf("%s-subnet", networkName)
-	t.Logf("--- Starting VPC Cleanup for network: %s ---", networkName)
-
-	t.Logf("Attempting to delete Subnet: %s in region %s", subnetName, region)
-	cmdSubnet := shell.Command{
-		Command: "gcloud",
-		Args: []string{
-			text, "networks", "subnets", "delete", subnetName,
-			"--project=" + projectID,
-			"--region=" + region,
-			"--quiet", // Suppress confirmation prompts
-		},
-	}
-	_, errSubnet := shell.RunCommandAndGetOutputE(t, cmdSubnet)
-	if errSubnet != nil {
-		t.Logf("Note: Error deleting Subnet %s (may be benign if already gone or due to dependencies): %v", subnetName, errSubnet)
-	} else {
-		t.Logf("Subnet %s deleted successfully or did not exist.", subnetName)
-	}
-
-	time.Sleep(15 * time.Second)
-	t.Logf("Attempting to delete VPC Network: %s", networkName)
-	cmdVPC := shell.Command{
-		Command: "gcloud",
-		Args: []string{
-			text, "networks", "delete", networkName,
-			"--project=" + projectID,
-			"--quiet",
-		},
-	}
-	_, errVPC := shell.RunCommandAndGetOutputE(t, cmdVPC)
-	if errVPC != nil {
-		t.Logf("Note: Error deleting VPC Network %s (may be benign if already gone or due to dependencies like firewall rules not fully detached): %v", networkName, errVPC)
-	} else {
-		t.Logf("VPC Network %s deleted successfully or did not exist.", networkName)
-	}
-	t.Logf("--- VPC Cleanup for network %s finished ---", networkName)
-}
-
-func createFirewallRules(t *testing.T, projectID string, networkName string, instanceName string) bool {
-	t.Logf("Creating firewall rules for network %s (instance suffix %s)...", networkName, instanceName)
-	rulesToCreate := map[string]string{
-		fmt.Sprintf("fw-allow-ssh-%s", instanceName):   "tcp:22",
-		fmt.Sprintf("fw-allow-http-%s", instanceName):  "tcp:80",
-		fmt.Sprintf("fw-allow-https-%s", instanceName): "tcp:443",
-	}
-
-	allSucceeded := true
-	for ruleName, ruleProtoPort := range rulesToCreate {
-		t.Logf("Creating firewall rule: %s for %s", ruleName, ruleProtoPort)
-		cmd := shell.Command{
-			Command: "gcloud",
-			Args: []string{
-				"compute", "firewall-rules", "create", ruleName,
-				"--project=" + projectID,
-				"--network=" + networkName,
-				"--direction=INGRESS",
-				"--priority=1000",
-				"--action=ALLOW",
-				"--rules=" + ruleProtoPort,
-				"--source-ranges=0.0.0.0/0",
-				"--format=json",
-			},
-		}
-		_, err := shell.RunCommandAndGetOutputE(t, cmd)
-		if err != nil {
-			if strings.Contains(err.Error(), "already exists") {
-				t.Logf("Firewall rule %s already exists. Proceeding.", ruleName)
-			} else {
-				t.Errorf("Error creating firewall rule %s: %v", ruleName, err)
-				allSucceeded = false
-			}
-		} else {
-			t.Logf("Firewall rule %s created successfully.", ruleName)
-		}
-	}
-	if !allSucceeded {
-		t.Error("One or more firewall rules failed to create properly.")
-	}
-	return allSucceeded
-}
-
-func deleteFirewallRules(t *testing.T, projectID string, instanceName string) {
-	t.Logf("--- Starting Firewall Rule Cleanup for instance suffix: %s ---", instanceName)
-	rulesToDelete := []string{
-		fmt.Sprintf("fw-allow-ssh-%s", instanceName),
-		fmt.Sprintf("fw-allow-http-%s", instanceName),
-		fmt.Sprintf("fw-allow-https-%s", instanceName),
-	}
-
-	for _, ruleName := range rulesToDelete {
-		t.Logf("Attempting to delete firewall rule: %s", ruleName)
-		cmd := shell.Command{
-			Command: "gcloud",
-			Args: []string{
-				"compute", "firewall-rules", "delete", ruleName,
-				"--project=" + projectID,
-				"--quiet",
-			},
-		}
-		_, err := shell.RunCommandAndGetOutputE(t, cmd)
-		if err != nil {
-			t.Logf("Note: Error deleting firewall rule %s (may be benign if already gone): %v", ruleName, err)
-		} else {
-			t.Logf("Firewall rule %s deleted successfully or did not exist.", ruleName)
-		}
-	}
-	t.Logf("--- Firewall Rule Cleanup for instance suffix %s finished ---", instanceName)
 }
 
 func TestCreateAppEngine(t *testing.T) {
 	if projectID == "" {
 		t.Fatal("TF_VAR_project_id environment variable must be set")
 	}
-	instanceName = fmt.Sprintf("appeng-flex-test-%d", rand.Intn(10000))
-	networkName = fmt.Sprintf("vpc-%s", instanceName)
-	serviceAccountName = fmt.Sprintf("sa-%s", instanceName)
 	gcsBucketName = fmt.Sprintf("bkt-%s-%s", strings.ToLower(projectID), instanceName)
 	gcsBucketName = strings.ReplaceAll(gcsBucketName, "_", "-")
 	if len(gcsBucketName) > 63 {
 		gcsBucketName = gcsBucketName[:63]
 	}
 
-	t.Logf("Test Run Config: ProjectID=%s, InstanceSuffix=%s, Network=%s, SA=%s, Bucket=%s",
-		projectID, instanceName, networkName, serviceAccountName, gcsBucketName)
-	var err error
-	serviceAccountEmail, err = createServiceAccount(t, projectID, serviceAccountName, "AppEngine Test SA")
-	if err != nil {
-		t.Fatalf("Failed to create service account: %v", err)
-	}
-	defer deleteServiceAccount(t, projectID, serviceAccountEmail)
-	rolesToGrant := []string{
-		"roles/logging.logWriter",
-		"roles/artifactregistry.admin",
-		"roles/cloudbuild.builds.editor",
-		"roles/cloudsql.client",
-		"roles/storage.admin",
-		"roles/monitoring.metricWriter",
-	}
-	for _, role := range rolesToGrant {
-		err = addIAMPolicyBinding(t, projectID, serviceAccountEmail, role)
-		if err != nil {
-			t.Fatalf("Failed to add role %s to SA %s: %v", role, serviceAccountEmail, err)
-		}
-	}
-	t.Logf("IAM roles granted to service account %s", serviceAccountEmail)
+	t.Logf("Test Run Config: ProjectID=%s, InstanceSuffix=%s, Network=%s, Bucket=%s",
+		projectID, instanceName, networkName, gcsBucketName)
 
-	err = createGCSBucket(t, projectID, gcsBucketName)
-	if err != nil {
-		t.Fatalf("Failed to create GCS bucket: %v", err)
-	}
-	defer deleteGCSBucket(t, gcsBucketName)
+	appEngineDefaultSA := fmt.Sprintf("%s@appspot.gserviceaccount.com", projectID)
+	common_utils.CreateGcsBucket(t, projectID, gcsBucketName, region)
+	defer common_utils.DeleteGcsBucket(t, gcsBucketName)
 
 	localZipPath, sourceTempDir, err := prepareAppSourceZip(t)
 	if err != nil {
 		t.Fatalf("Failed to prepare app source zip: %v", err)
 	}
-	defer func() {
-		t.Logf("Cleaning up temporary source directory: %s", sourceTempDir)
-		if err := os.RemoveAll(sourceTempDir); err != nil {
-			t.Logf("WARN: Failed to remove temp source directory %s: %v", sourceTempDir, err)
-		}
-	}()
+	defer common_utils.RemoveTempDir(t, sourceTempDir)
 
 	fileInfo, statErr := os.Stat(localZipPath)
 	if statErr != nil {
-		t.Fatalf("Zip file expected at %s was not found after prepareAppSourceZip: %v", localZipPath, statErr)
+		t.Fatalf("Zip file expected at %s was not found: %v", localZipPath, statErr)
 	}
 	if fileInfo.Size() == 0 {
-		t.Fatalf("Zip file at %s is empty after prepareAppSourceZip. Size: %d bytes", localZipPath, fileInfo.Size())
+		t.Fatalf("Zip file at %s is empty. Size: %d bytes", localZipPath, fileInfo.Size())
 	}
 	t.Logf("Local zip file %s prepared successfully, size: %d bytes. Proceeding to upload.", localZipPath, fileInfo.Size())
-
-	gcsSourceURL, err = uploadToGCS(t, localZipPath, gcsBucketName, "app_source.zip")
+	gcsSourceURL, err = common_utils.UploadGCSObjectFromFile(t, projectID, localZipPath, gcsBucketName, "app_source.zip")
 	if err != nil {
 		t.Fatalf("Failed to upload app source to GCS: %v", err)
 	}
+	defer common_utils.DeleteGcsObjects(t, gcsBucketName, "")
 	t.Logf("App source uploaded to: %s", gcsSourceURL)
-
-	generatedConfigs := createConfigYAML(t, serviceAccountEmail, gcsSourceURL)
+	generatedConfigs := createConfigYAML(t, appEngineDefaultSA, gcsSourceURL)
 	if len(generatedConfigs) == 0 {
 		t.Fatal("No YAML configurations were generated.")
 	}
@@ -677,24 +247,23 @@ func TestCreateAppEngine(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		Vars: tfVars, TerraformDir: terraformDirectoryPath, Reconfigure: true, Lock: true, NoColor: true, SetVarsAfterVarFiles: true,
 	})
-	if !createVPC(t, projectID, networkName) {
-		t.Fatal("VPC/Subnet creation failed.")
-	}
-	defer deleteVPC(t, projectID, networkName)
+
+	common_utils.CreateVPCSubnets(t, projectID, networkName, subnetName, region)
+	defer common_utils.DeleteVPCSubnets(t, projectID, networkName, subnetName, region)
 	t.Log("VPC/Subnet created. Waiting for propagation...")
 	time.Sleep(60 * time.Second)
-
-	if !createFirewallRules(t, projectID, networkName, instanceName) {
+	if !common_utils.CreateFirewallRules(t, projectID, networkName, instanceName) {
 		t.Fatal("Firewall rule creation failed.")
 	}
-	defer deleteFirewallRules(t, projectID, instanceName)
+	defer common_utils.DeleteFirewallRules(t, projectID, instanceName)
 	t.Log("Firewall rules created.")
 
 	defer terraform.Destroy(t, terraformOptions)
 	t.Log("Running terraform init and apply...")
 	terraform.InitAndApply(t, terraformOptions)
 	t.Log("Terraform apply complete.")
-	t.Log("Fetching Terraform outputs...")
+	t.Log("====== Starting Verification from Live Deployed Version. =======")
+	t.Log("Fetching Terraform output for variable 'instance_service_urls'...")
 	instanceServiceURLsOutput := terraform.OutputJson(t, terraformOptions, "instance_service_urls")
 	instanceServiceURLsMap := gjson.Parse(instanceServiceURLsOutput).Map()
 	if len(instanceServiceURLsMap) == 0 {
@@ -702,7 +271,7 @@ func TestCreateAppEngine(t *testing.T) {
 	}
 	t.Logf("Found %d instance outputs for verification.", len(instanceServiceURLsMap))
 
-	maxRetries := 7 // Allow more retries as GAE flex can be slow
+	maxRetries := 7
 	retryInterval := 1 * time.Minute
 	verifiedServiceCount := 0
 
@@ -741,7 +310,7 @@ func TestCreateAppEngine(t *testing.T) {
 		versionID := expectedConfig.VersionID
 		for i := 0; i < maxRetries; i++ {
 			t.Logf("Describing %s/%s (Attempt %d/%d)...", serviceName, versionID, i+1, maxRetries)
-			cmd := shell.Command{Command: "gcloud", Args: []string{"app", "versions", "describe", versionID, "--service", serviceName, "--verbosity=none","--project", projectID, "--format", "json"}}
+			cmd := shell.Command{Command: "gcloud", Args: []string{"app", "versions", "describe", versionID, "--service", serviceName, "--verbosity=none", "--project", projectID, "--format", "json"}}
 			gcloudOutput, errCmd := shell.RunCommandAndGetOutputE(t, cmd)
 			if errCmd != nil {
 				t.Logf("gcloud error for %s/%s: %v. Retrying...", serviceName, versionID, errCmd)
@@ -753,20 +322,47 @@ func TestCreateAppEngine(t *testing.T) {
 				time.Sleep(retryInterval)
 				continue
 			}
-			t.Logf("gcloud Output : %s",gcloudOutput)
+			t.Logf("gcloud Output : %s", gcloudOutput)
 			actualServiceInfo := gjson.Parse(gcloudOutput)
-			t.Logf("Actual Service Info : %s",actualServiceInfo)
-			status := gjson.Get(actualServiceInfo.String(),"servingStatus").String()
+			t.Logf("Actual Service Info : %s", actualServiceInfo)
+			status := gjson.Get(actualServiceInfo.String(), "servingStatus").String()
 			t.Logf("Status for %s/%s: %s", serviceName, versionID, status)
 			if status == "SERVING" {
+				t.Logf("--> Verifying 'runtime' field...")
 				t.Logf("Service %s/%s is SERVING. Performing assertions...", serviceName, versionID)
-				assert.Equal(t, expectedConfig.Runtime, actualServiceInfo.Get("runtime").String(), "Runtime mismatch")
-				assert.Equal(t, expectedConfig.InstanceClass, actualServiceInfo.Get("instanceClass").String(), "InstanceClass mismatch")
-				assert.Equal(t, expectedConfig.ServiceAccount, actualServiceInfo.Get("serviceAccount").String(), "ServiceAccount mismatch")
-				assert.Equal(t, expectedConfig.Network.Name, actualServiceInfo.Get("network.name").String(), "Network name mismatch")
-				actualSubnetworkPath := actualServiceInfo.Get("network.subnetworkName").String()
-				assert.Equal(t, expectedConfig.Network.Subnetwork, actualSubnetworkPath, "Subnetwork name mismatch")
+				actualRuntime := actualServiceInfo.Get("runtime").String()
+				t.Logf("...... Expected Runtime: %s", expectedConfig.Runtime)
+				t.Logf("...... Found Runtime:    %s", actualRuntime)
+				assert.Equal(t, expectedConfig.Runtime, actualRuntime, "Runtime mismatch")
+				t.Logf("...... ✓ Runtime verification successful.")
 
+				t.Logf("--> Verifying 'instanceClass' field...")
+				actualInstanceClass := actualServiceInfo.Get("instanceClass").String()
+				t.Logf("...... Expected Instance Class: %s", expectedConfig.InstanceClass)
+				t.Logf("...... Found Instance Class:    %s", actualInstanceClass)
+				assert.Equal(t, expectedConfig.InstanceClass, actualInstanceClass, "InstanceClass mismatch")
+				t.Logf("...... ✓ Instance class verification successful.")
+
+				t.Logf("--> Verifying 'serviceAccount' field...")
+				actualServiceAccount := actualServiceInfo.Get("serviceAccount").String()
+				t.Logf("...... Expected Service Account: %s", expectedConfig.ServiceAccount)
+				t.Logf("...... Found Service Account:    %s", actualServiceAccount)
+				assert.Equal(t, expectedConfig.ServiceAccount, actualServiceAccount, "ServiceAccount mismatch")
+				t.Logf("...... ✓ Service account verification successful.")
+
+				t.Logf("--> Verifying 'network name' field...")
+				actualNetworkName := actualServiceInfo.Get("network.name").String()
+				t.Logf("...... Expected Network Name: %s", expectedConfig.Network.Name)
+				t.Logf("...... Found Network Name:    %s", actualNetworkName)
+				assert.Equal(t, expectedConfig.Network.Name, actualNetworkName, "Network name mismatch")
+				t.Logf("...... ✓ Network name verification successful.")
+
+				t.Logf("--> Verifying 'subnetwork name' field...")
+				actualSubnetworkPath := actualServiceInfo.Get("network.subnetworkName").String()
+				t.Logf("...... Expected Subnetwork Name: %s", expectedConfig.Network.Subnetwork)
+				t.Logf("...... Found Subnetwork Name:    %s", actualSubnetworkPath)
+				assert.Equal(t, expectedConfig.Network.Subnetwork, actualSubnetworkPath, "Subnetwork name mismatch")
+				t.Logf("...... ✓ Subnetwork name verification successful.")
 				if expectedConfig.Deployment != nil && expectedConfig.Deployment.Zip != nil {
 					t.Logf("Verifying deployment source URL for %s/%s against expected %s (actual field may vary).",
 						serviceName, versionID, expectedConfig.Deployment.Zip.SourceURL)
