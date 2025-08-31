@@ -1,0 +1,11 @@
+priority: 1000
+project_id: "test-project-id"
+firewall_policy_name: "test-firewall-policy"
+direction: "INGRESS"
+security_profile_group: "organizations/123456789012/locations/global/securityProfileGroups/test-spg"
+action: "mirror"
+match:
+  src_ip_ranges:
+    - "10.20.30.40/24"
+  layer4_configs:
+    - ip_protocol: "all"

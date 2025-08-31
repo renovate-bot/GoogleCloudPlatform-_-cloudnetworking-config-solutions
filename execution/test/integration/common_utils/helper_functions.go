@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/gruntwork-io/terratest/modules/shell"
+	"github.com/stretchr/testify/assert"
 )
 
 /*
@@ -305,6 +306,176 @@ func GetProjectNumber(t *testing.T, projectID string) (string, error) {
 	}
 
 	return projectNumber, nil
+}
+
+/*
+CreateFirewallPolicy is a helper function that creates a global network
+firewall policy for an integration test.
+*/
+func CreateFirewallPolicy(t *testing.T, projectID, policyName string) {
+	t.Logf("Creating Firewall Policy '%s'...", policyName)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"compute", "network-firewall-policies", "create", policyName, "--project=" + projectID, "--description=integration-test-policy", "--global"},
+	}
+	_, err := shell.RunCommandAndGetOutputE(t, cmd)
+	if !assert.NoError(t, err, "Firewall Policy creation has Failed") {
+		t.FailNow()
+	}
+}
+
+/*
+DeleteFirewallPolicy is a helper function that deletes a global network
+firewall policy after a test completes.
+*/
+func DeleteFirewallPolicy(t *testing.T, projectID, policyName string) {
+	t.Logf("--- Deleting Firewall Policy: %s ---", policyName)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"compute", "network-firewall-policies", "delete", policyName, "--project=" + projectID, "--global", "--quiet"},
+	}
+	_, err := shell.RunCommandAndGetOutputE(t, cmd)
+	if !assert.NoError(t, err, "Firewall Policy deletion has failed.") {
+		t.FailNow()
+	}
+}
+
+/*
+DescribeFirewallPolicyRule is a helper function that describes a specific
+firewall policy rule for validation purposes.
+*/
+func DescribeFirewallPolicyRule(t *testing.T, projectID, policyName, rulePriority string) string {
+	t.Logf("Describing Firewall Rule with priority '%s' in policy '%s'...", rulePriority, policyName)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"compute", "network-firewall-policies", "mirroring-rules", "describe", rulePriority, "--project=" + projectID, "--firewall-policy=" + policyName, "--global-firewall-policy"},
+	}
+	output, err := shell.RunCommandAndGetOutputE(t, cmd)
+	if !assert.NoError(t, err, "An Attempt to describe Firewall Policy has failed.") {
+		t.FailNow()
+	}
+	return output
+}
+
+/*
+CreateMirroringDeploymentGroup is a helper function that creates a packet
+mirroring deployment group as a prerequisite for a test.
+*/
+func CreateMirroringDeploymentGroup(t *testing.T, projectID, dgName, vpcName string) {
+	t.Logf("Creating Deployment Group '%s'...", dgName)
+	networkURL := fmt.Sprintf("projects/%s/global/networks/%s", projectID, vpcName)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"network-security", "mirroring-deployment-groups", "create", dgName, "--project=" + projectID, "--location=global", "--network=" + networkURL},
+	}
+	_, err := shell.RunCommandAndGetOutputE(t, cmd)
+	if !assert.NoError(t, err, "Mirroring Deployment Group creation has failed.") {
+		t.FailNow()
+	}
+}
+
+/*
+DeleteMirroringDeploymentGroup is a helper function that deletes a packet
+mirroring deployment group after a test completes.
+*/
+func DeleteMirroringDeploymentGroup(t *testing.T, projectID, dgName string) {
+	t.Logf("--- Deleting Deployment Group: %s ---", dgName)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"network-security", "mirroring-deployment-groups", "delete", dgName, "--project=" + projectID, "--location=global", "--quiet", "--no-async"},
+	}
+	_, err := shell.RunCommandAndGetOutputE(t, cmd)
+	if !assert.NoError(t, err, "Mirroring Deployment group deletion has failed.") {
+		t.FailNow()
+	}
+}
+
+/*
+CreateMirroringEndpointGroup is a helper function that creates a packet
+mirroring endpoint group as a prerequisite for a test.
+*/
+func CreateMirroringEndpointGroup(t *testing.T, projectID, egName, dgName string) string {
+	t.Logf("Creating Endpoint Group '%s'...", egName)
+	deploymentGroupURL := fmt.Sprintf("projects/%s/locations/global/mirroringDeploymentGroups/%s", projectID, dgName)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"network-security", "mirroring-endpoint-groups", "create", egName, "--project=" + projectID, "--location=global", "--mirroring-deployment-group=" + deploymentGroupURL},
+	}
+	_, err := shell.RunCommandAndGetOutputE(t, cmd)
+	if !assert.NoError(t, err, "Mirroring Endpoint Group creation failed.") {
+		t.FailNow()
+	}
+	return fmt.Sprintf("projects/%s/locations/global/mirroringEndpointGroups/%s", projectID, egName)
+}
+
+/*
+DeleteMirroringEndpointGroup is a helper function that deletes a packet
+mirroring endpoint group after a test completes.
+*/
+func DeleteMirroringEndpointGroup(t *testing.T, projectID, egName string) {
+	t.Logf("--- Deleting Endpoint Group: %s ---", egName)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"network-security", "mirroring-endpoint-groups", "delete", egName, "--project=" + projectID, "--location=global", "--quiet", "--no-async"},
+	}
+	_, err := shell.RunCommandAndGetOutputE(t, cmd)
+	if !assert.NoError(t, err, "Mirroring Endpoint Group deletion failed.") {
+		t.FailNow()
+	}
+}
+
+/*
+CreateSecurityProfileAndGroup is a helper function that creates a security
+profile and a security profile group for packet mirroring.
+*/
+func CreateSecurityProfileAndGroup(t *testing.T, orgID, projectID, spName, spgName, endpointGroupID string) {
+	t.Logf("Creating Security Profile '%s' and Group '%s'...", spName, spgName)
+	// Create the Security Profile
+	cmdProfile := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"network-security", "security-profiles", "custom-mirroring", "create", spName, "--organization=" + orgID, "--location=global", "--billing-project=" + projectID, "--mirroring-endpoint-group=" + endpointGroupID},
+	}
+	_, err := shell.RunCommandAndGetOutputE(t, cmdProfile)
+	if !assert.NoError(t, err, "Security Profile creation failed.") {
+		t.FailNow()
+	}
+
+	// Create the Security Profile Group and add the profile to it
+	spPath := fmt.Sprintf("organizations/%s/locations/global/securityProfiles/%s", orgID, spName)
+	cmdGroup := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"network-security", "security-profile-groups", "create", spgName, "--organization=" + orgID, "--location=global", "--billing-project=" + projectID, "--custom-mirroring-profile=" + spPath},
+	}
+	_, err = shell.RunCommandAndGetOutputE(t, cmdGroup)
+	if !assert.NoError(t, err, "Security Profile Group creation failed.") {
+		t.FailNow()
+	}
+}
+
+/*
+DeleteSecurityProfileAndGroup is a helper function that deletes a security
+profile and its associated group after a test completes.
+*/
+func DeleteSecurityProfileAndGroup(t *testing.T, orgID, spName, spgName string) {
+	t.Logf("--- Deleting security profile group '%s' and profile '%s' ---", spgName, spName)
+	// We delete the group first, then the profile
+	cmdGroup := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"network-security", "security-profile-groups", "delete", spgName, "--organization=" + orgID, "--location=global", "--quiet"},
+	}
+	_, err := shell.RunCommandAndGetOutputE(t, cmdGroup)
+	if !assert.NoError(t, err, "Security Profile Group deletion failed.") {
+		t.FailNow()
+	}
+
+	cmdProfile := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"network-security", "security-profiles", "custom-mirroring", "delete", spName, "--organization=" + orgID, "--location=global", "--quiet"},
+	}
+	_, err = shell.RunCommandAndGetOutputE(t, cmdProfile)
+	if !assert.NoError(t, err, "Security Profile deletion failed.") {
+		t.FailNow()
+	}
 }
 
 // getAttachmentProjectNumber retrieves the project number for the attachment project.
