@@ -1,7 +1,0 @@
-organization_id: "YOUR_ORGANIZATION_ID"
-
-security_profile_group:
-  create: true
-  name: "legacy-app-sec-group"
-  description: "Group for legacy app with existing profile"
-  existing_threat_prevention_profile_id: "organizations/YOUR_ORGANIZATION_ID/locations/global/securityProfiles/pre-existing-threat-profile"

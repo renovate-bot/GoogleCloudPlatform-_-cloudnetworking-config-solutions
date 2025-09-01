@@ -15,7 +15,7 @@
 output "security_profiles" {
   description = "A map of all created security profiles with their details."
   value = {
-    for key, profile in module.security_profiles : key => {
+    for key, profile in module.security_profile : key => {
       id   = profile.security_profile_id
       name = profile.security_profile_name
     } if profile.security_profile_id != null
@@ -25,7 +25,7 @@ output "security_profiles" {
 output "security_profile_groups" {
   description = "A map of all created security profile groups with their details."
   value = {
-    for key, group in module.security_profiles : key => {
+    for key, group in module.security_profile : key => {
       id   = group.security_profile_group_id
       name = group.security_profile_group_name
     } if group.security_profile_group_id != null

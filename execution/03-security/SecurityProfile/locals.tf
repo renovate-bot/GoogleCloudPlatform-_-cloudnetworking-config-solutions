@@ -19,7 +19,7 @@ locals {
       content = yamldecode(file("${var.config_folder_path}/${file_path}"))
     }
   ]
-  security_profiles_list = flatten([
+  security_profiles_list = [
     for item in local.security_configs_with_keys : {
       key             = item.key
       organization_id = item.content.organization_id
@@ -45,6 +45,6 @@ locals {
       }
       link_profile_to_group = try(item.content.link_profile_to_group, var.link_profile_to_group)
     }
-  ])
+  ]
   security_profiles_map = { for sp in local.security_profiles_list : sp.key => sp }
 }

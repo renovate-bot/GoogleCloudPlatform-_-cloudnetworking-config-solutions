@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module "security_profiles" {
+module "security_profile" {
   for_each                              = local.security_profiles_map
   source                                = "../../../modules/security_profile/"
   organization_id                       = each.value.organization_id
