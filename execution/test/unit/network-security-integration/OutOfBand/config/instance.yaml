@@ -1,0 +1,36 @@
+deployment_group:
+  create: true
+  deployment_group_project_id: "dgp-test-project"
+  name: "unittest-dg"
+  description: "Unit test deployment group"
+  producer_network_link: "projects/deployment-group-project-id/global/networks/test-producer-vpc1"
+
+endpoint_group:
+  create: true
+  endpoint_group_project_id: "egp-test-project"
+  name: "unittest-eg"
+  description: "Unit test endpoint group"
+
+# A list of 2 deployments to create under the deployment_group
+deployments:
+  - deployment_project_id: "dp-test-project1"
+    name: "unittest-deployment-a"
+    location: "us-central1-a"
+    forwarding_rule_link: "projects/deployment1-project-id/regions/us-central1/forwardingRules/collector-fr-us-a"
+    description: "Unit test deployment for zone A"
+
+  - deployment_project_id: "dp-test-project2"
+    name: "unittest-deployment-b"
+    location: "us-central1-b"
+    forwarding_rule_link: "projects/deployment2-project-id/regions/us-central1/forwardingRules/collector-fr-us-b"
+    description: "Unit test deployment for zone B"
+
+# A list of 2 associations to create under the endpoint_group
+endpoint_associations:
+  - endpoint_association_project_id: "ea-test-project1"
+    name: "unittest-assoc-1"
+    consumer_network_link: "projects/endpoint-association1-project-id/global/networks/test-consumer-vpc1"
+
+  - endpoint_association_project_id: "ea-test-project2"
+    name: "unittest-assoc-2"
+    consumer_network_link: "projects/endpoint-association2-project-id/global/networks/test-consumer-vpc2"

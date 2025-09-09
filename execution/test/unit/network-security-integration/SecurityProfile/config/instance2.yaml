@@ -1,0 +1,14 @@
+# This file creates only a profile (1 resource).
+
+config_key: "test-sp-only"
+organization_id: "YOUR_ORGANIZATION_ID"
+
+# --- Defines the Security Profile resource ---
+security_profile:
+  create: true
+  name: "test-mirroring-profile"
+  type: "CUSTOM_MIRRORING"
+  description: "Test mirroring profile for unit testing"
+  custom_mirroring_profile:
+    # This path is a placeholder for testing; it does not need to exist for the plan.
+    mirroring_endpoint_group: "projects/your-project/locations/global/mirroringEndpointGroups/test-group"

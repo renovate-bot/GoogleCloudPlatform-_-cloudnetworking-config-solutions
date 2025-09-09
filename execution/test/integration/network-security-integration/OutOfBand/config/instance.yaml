@@ -1,0 +1,22 @@
+deployment_group:
+  create: true
+  deployment_group_project_id: test-project-id
+  name: integ-test-dg-jcc3s2
+  producer_network_link: projects/test-project-id/global/networks/producer-vpc-jcc3s2
+deployments:
+- deployment_project_id: test-project-id
+  forwarding_rule_link: projects/test-project-id/regions/us-central1/forwardingRules/collector-fr-a-jcc3s2
+  location: us-central1-a
+  name: integ-test-dep-a-jcc3s2
+- deployment_project_id: test-project-id
+  forwarding_rule_link: projects/test-project-id/regions/us-central1/forwardingRules/collector-fr-b-jcc3s2
+  location: us-central1-b
+  name: integ-test-dep-b-jcc3s2
+endpoint_associations:
+- consumer_network_link: projects/test-project-id/global/networks/consumer-vpc-jcc3s2
+  endpoint_association_project_id: test-project-id
+  name: integ-test-assoc-a-jcc3s2
+endpoint_group:
+  create: true
+  endpoint_group_project_id: test-project-id
+  name: integ-test-eg-jcc3s2
