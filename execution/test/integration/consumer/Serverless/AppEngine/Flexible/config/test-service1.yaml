@@ -1,0 +1,33 @@
+project_id: test-project-id
+service: test-service1
+runtime: python
+flexible_runtime_settings:
+  operating_system: ubuntu22
+  runtime_version: "3.12"
+instance_class: ""
+network:
+  name: vpc-appeng-flex-test-1821
+  subnetwork: vpc-appeng-flex-test-1821-subnet
+version_id: v1
+manual_scaling:
+  instances: 1
+entrypoint:
+  shell: pip3 install gunicorn flask && gunicorn -b :8080 main:app
+deployment:
+  zip:
+    source_url: https://storage.googleapis.com/bkt-test-project-id-appeng-flex-test-1821/app_source.zip
+liveness_check:
+  initial_delay: 300s
+  path: /
+readiness_check:
+  app_start_timeout: 300s
+  path: /
+delete_service_on_destroy: true
+env_variables:
+  GCS_SOURCE: https://storage.googleapis.com/bkt-test-project-id-appeng-flex-test-1821/app_source.zip
+  SERVICE_ID: "1"
+service_account: test-project-id@appspot.gserviceaccount.com
+labels:
+  managed-by: terratest
+  specific-to: service1
+  test-type: integration

@@ -15,7 +15,10 @@
 package common_utils
 
 import (
+	"archive/zip"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	stdlib_strconv "strconv"
@@ -489,4 +492,378 @@ func GetAttachmentProjectNumber(t *testing.T, projectID string, attachmentProjec
 	}
 
 	return GetProjectNumber(t, attachmentProjectID)
+}
+
+/*
+GetEnv is a generic utility to read an environment variable or return a fallback.
+*/
+func GetEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
+/*
+EnsureAppEngineApplicationExists checks if an App Engine app exists and creates one
+in the specified region if it does not.
+*/
+func EnsureAppEngineApplicationExists(t *testing.T, projectID string, region string) {
+	const appCreatePropagationWait = 15 * time.Second // Wait after App Engine app creation
+
+	t.Helper()
+	t.Logf("Checking if App Engine application exists in project '%s'...", projectID)
+
+	describeCmd := shell.Command{
+		Command: "gcloud",
+		Args: []string{
+			"app", "describe",
+			"--project=" + projectID,
+		},
+		Env: map[string]string{
+			"CLOUDSDK_CORE_PROJECT": projectID,
+		},
+	}
+
+	output, err := shell.RunCommandAndGetOutputE(t, describeCmd)
+
+	if err == nil {
+		t.Logf("App Engine application already exists in project '%s'. Description output (may include location):\n%s", projectID, output)
+		return
+	}
+	// Check if error output indicates the app is missing
+	if strings.Contains(output, "does not contain an App Engine application") ||
+		(err != nil && strings.Contains(err.Error(), "does not contain an App Engine application")) {
+
+		t.Logf("App Engine application does not exist in project '%s'. Attempting to create it in region '%s'...", projectID, region)
+
+		createCmd := shell.Command{
+			Command: "gcloud",
+			Args: []string{
+				"app", "create",
+				"--region=" + region,
+				"--project=" + projectID,
+				"--quiet",
+			},
+		}
+		createOutput, createErr := shell.RunCommandAndGetOutputE(t, createCmd)
+		if createErr != nil {
+			t.Logf("Failed to create App Engine application in project '%s', region '%s'. Output:\n%s, Error: %s", projectID, region, createOutput, createErr)
+		}
+
+		t.Logf("Successfully created App Engine application in project '%s', region '%s'. Output:\n%s", projectID, region, createOutput)
+
+		t.Logf("Waiting %v for App Engine application creation to propagate...", appCreatePropagationWait)
+		time.Sleep(appCreatePropagationWait)
+	} else {
+		// App exists but another error occurred
+		if err != nil {
+			t.Logf("Failed to describe App Engine application for an unexpected reason. Output:\n%s. Error:%s", output, err)
+		}
+	}
+}
+
+/*
+CreateGcsBucket creates a GCS bucket using the 'gcloud storage' command.
+*/
+func CreateGcsBucket(t *testing.T, projectID string, bucketName string, location string) {
+	t.Helper()
+	t.Logf("Creating GCS bucket: gs://%s", bucketName)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"storage", "buckets", "create", fmt.Sprintf("gs://%s", bucketName), "--project=" + projectID, "--location=" + location, "--uniform-bucket-level-access"},
+	}
+	// Run and capture output only on error
+	if _, err := shell.RunCommandAndGetOutputE(t, cmd); err != nil {
+		t.Logf("Failed to create GCS bucket %s. Error: %s", bucketName, err)
+	}
+	t.Logf("GCS bucket gs://%s created.", bucketName)
+}
+
+/*
+DeleteGcsBucket deletes a GCS bucket.
+*/
+func DeleteGcsBucket(t *testing.T, bucketName string) {
+	t.Helper()
+	t.Logf("Deleting GCS bucket: gs://%s", bucketName)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"storage", "buckets", "delete", fmt.Sprintf("gs://%s", bucketName), "--quiet"},
+	}
+	output, err := shell.RunCommandAndGetOutputE(t, cmd)
+	if err != nil {
+		if !strings.Contains(output, "BucketNotFoundException: 404") && !strings.Contains(err.Error(), "NotFoundException") {
+			t.Logf("Error deleting GCS bucket %s: %v. Output:\n%s", bucketName, err, output)
+		} else {
+			t.Logf("GCS bucket %s already deleted or not found.", bucketName)
+		}
+	} else {
+		t.Logf("GCS bucket %s deleted.", bucketName)
+	}
+}
+
+/*
+DeleteGcsObjects deletes objects from a GCS path prefix.
+*/
+func DeleteGcsObjects(t *testing.T, bucketName string, objectPathPrefix string) {
+	t.Helper()
+
+	var gcsPath string
+	if objectPathPrefix == "" {
+		// If the prefix is empty, we want to delete everything at the root of the bucket.
+		// The path must be gs://bucket-name/*
+		gcsPath = fmt.Sprintf("gs://%s/*", bucketName)
+	} else {
+		// If a prefix is provided, trim any trailing slash and add the wildcard.
+		// The path must be gs://bucket-name/prefix/*
+		trimmedPrefix := strings.TrimSuffix(objectPathPrefix, "/")
+		gcsPath = fmt.Sprintf("gs://%s/%s/*", bucketName, trimmedPrefix)
+	}
+
+	t.Logf("Deleting objects in GCS path: %s", gcsPath)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"storage", "rm", gcsPath, "--recursive"},
+	}
+	output, err := shell.RunCommandAndGetOutputE(t, cmd)
+	// Suppress errors if no objects were found to delete
+	if err != nil && !strings.Contains(output, "One or more URLs matched no objects") && !strings.Contains(err.Error(), "One or more URLs matched no objects") {
+		t.Logf("Note: Error deleting objects from %s (may be benign if already gone): %v. Output:\n%s", gcsPath, err, output)
+	} else {
+		t.Logf("Attempted deletion of objects in %s (any matching objects removed or none found).", gcsPath)
+	}
+}
+
+/*
+UploadGcsObjectFromString uploads content from a string to a GCS object by
+creating a temporary local file.
+*/
+func UploadGcsObjectFromString(t *testing.T, projectID string, bucketName string, objectPath string, content string) {
+	t.Helper()
+	tmpFile, err := os.CreateTemp("", "gcs-upload-*.tmp")
+	if err != nil {
+		t.Logf("Failed to create temp file for GCS upload:Error %s", err)
+	}
+	defer os.Remove(tmpFile.Name()) // Clean up temp file
+
+	if _, err := tmpFile.WriteString(content); err != nil {
+		t.Logf("Failed to write content to temp file: Error:%s", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		t.Logf("Failed to close temp file: Error:%s", err)
+	}
+
+	gcsDest := fmt.Sprintf("gs://%s/%s", bucketName, objectPath)
+	t.Logf("Uploading temp file %s to %s", tmpFile.Name(), gcsDest)
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"storage", "cp", tmpFile.Name(), gcsDest, "--project=" + projectID},
+	}
+	if _, err := shell.RunCommandAndGetOutputE(t, cmd); err != nil {
+		t.Logf("Failed to upload object %s to bucket %s. Error:%s", objectPath, bucketName, err)
+	}
+	t.Logf("Uploaded object %s successfully.", objectPath)
+}
+
+/*
+UploadGCSObjectFromFile uploads a local file to a GCS bucket.
+This complements UploadGcsObjectFromString.
+*/
+func UploadGCSObjectFromFile(t *testing.T, projectID string, localFilePath, bucketName, objectName string) (string, error) {
+	t.Helper()
+	t.Logf("Uploading %s to gs://%s/%s", localFilePath, bucketName, objectName)
+	gsutilUploadPath := fmt.Sprintf("gs://%s/%s", bucketName, objectName)
+
+	cmd := shell.Command{
+		Command: "gcloud",
+		Args:    []string{"storage", "cp", localFilePath, gsutilUploadPath, "--project=" + projectID},
+	}
+	_, err := shell.RunCommandAndGetOutputE(t, cmd)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload %s to %s: %w", localFilePath, gsutilUploadPath, err)
+	}
+
+	// This is the HTTPS URL for App Engine source, gs:// paths are not valid here.
+	httpsURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, objectName)
+
+	t.Logf("File %s uploaded successfully. App Engine source URL: %s", filepath.Base(localFilePath), httpsURL)
+	return httpsURL, nil
+}
+
+/*
+DownloadFile downloads a file from a URL to a local destination directory.
+*/
+func DownloadFile(t *testing.T, url string, destDir string, fileName string) (string, error) {
+	filePath := filepath.Join(destDir, fileName)
+	t.Logf("Downloading %s to %s", url, filePath)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to download %s: status %s", url, resp.Status)
+	}
+
+	out, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return filePath, nil
+}
+
+/*
+CreateZipArchive creates a zip file from a map of source files.
+The map key is the path to the file on disk (relative to sourceDir),
+and the map value is the path it should have inside the zip file.
+*/
+func CreateZipArchive(t *testing.T, sourceDir string, targetZipPath string, filesToZip map[string]string) error {
+	t.Logf("Creating zip archive %s from contents of %s", targetZipPath, sourceDir)
+	zipFile, err := os.Create(targetZipPath)
+	if err != nil {
+		return fmt.Errorf("failed to create zip file %s: %w", targetZipPath, err)
+	}
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	for sourcePath, pathInZip := range filesToZip {
+		fullSourcePath := filepath.Join(sourceDir, sourcePath)
+		t.Logf("Adding to zip: %s as %s", fullSourcePath, pathInZip)
+		fileToZip, err := os.Open(fullSourcePath)
+		if err != nil {
+			return fmt.Errorf("failed to open file %s for zipping: %w", fullSourcePath, err)
+		}
+		defer fileToZip.Close()
+
+		info, err := fileToZip.Stat()
+		if err != nil {
+			return fmt.Errorf("failed to get file info for %s: %w", fullSourcePath, err)
+		}
+
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return fmt.Errorf("failed to create zip header for %s: %w", fullSourcePath, err)
+		}
+		header.Name = pathInZip // Use the desired path inside the zip
+		header.Method = zip.Deflate
+
+		writer, err := zipWriter.CreateHeader(header)
+		if err != nil {
+			return fmt.Errorf("failed to create zip writer for %s: %w", pathInZip, err)
+		}
+		if _, err = io.Copy(writer, fileToZip); err != nil {
+			return fmt.Errorf("failed to write file %s to zip: %w", pathInZip, err)
+		}
+	}
+	t.Logf("Zip archive %s created successfully.", targetZipPath)
+	return nil
+}
+
+/*
+CreateFirewallRules creates the standard firewall rules required
+*/
+func CreateFirewallRules(t *testing.T, projectID string, networkName string, ruleSuffix string) bool {
+	iapAndHealthCheckRanges := map[string]string{
+		"allow-ssh-from-iap":  "35.235.240.0/20",              // Google's IAP range for secure SSH
+		"allow-health-checks": "130.211.0.0/22,35.191.0.0/16", // Google's Health Checker ranges
+	}
+
+	rulesToCreate := map[string]string{
+		fmt.Sprintf("fw-allow-ssh-%s", ruleSuffix):   "tcp:22",
+		fmt.Sprintf("fw-allow-http-%s", ruleSuffix):  "tcp:80",
+		fmt.Sprintf("fw-allow-https-%s", ruleSuffix): "tcp:443",
+	}
+
+	allSucceeded := true
+	for ruleName, ruleProtoPort := range rulesToCreate {
+		var sourceRange string
+		if strings.Contains(ruleName, "ssh") {
+			sourceRange = iapAndHealthCheckRanges["allow-ssh-from-iap"]
+		} else {
+			// Both http and https rules get the health check range
+			sourceRange = iapAndHealthCheckRanges["allow-health-checks"]
+		}
+
+		t.Logf("Creating firewall rule: %s for %s from source %s", ruleName, ruleProtoPort, sourceRange)
+		cmd := shell.Command{
+			Command: "gcloud",
+			Args: []string{
+				"compute", "firewall-rules", "create", ruleName,
+				"--project=" + projectID,
+				"--network=" + networkName,
+				"--direction=INGRESS",
+				"--priority=1000",
+				"--action=ALLOW",
+				"--rules=" + ruleProtoPort,
+				"--source-ranges=" + sourceRange, // Use the specific source range
+				"--format=json",
+			},
+		}
+		_, err := shell.RunCommandAndGetOutputE(t, cmd)
+		if err != nil {
+			if strings.Contains(err.Error(), "already exists") {
+				t.Logf("Firewall rule %s already exists. Proceeding.", ruleName)
+			} else {
+				t.Errorf("Error creating firewall rule %s: %v", ruleName, err)
+				allSucceeded = false
+			}
+		} else {
+			t.Logf("Firewall rule %s created successfully.", ruleName)
+		}
+	}
+	if !allSucceeded {
+		t.Error("One or more firewall rules failed to create properly.")
+	}
+	return allSucceeded
+}
+
+/*
+DeleteFirewallRules cleans up the standard firewall rules.
+*/
+func DeleteFirewallRules(t *testing.T, projectID string, ruleSuffix string) {
+	t.Logf("--- Starting Firewall Rule Cleanup for instance suffix: %s ---", ruleSuffix)
+	rulesToDelete := []string{
+		fmt.Sprintf("fw-allow-ssh-%s", ruleSuffix),
+		fmt.Sprintf("fw-allow-http-%s", ruleSuffix),
+		fmt.Sprintf("fw-allow-https-%s", ruleSuffix),
+	}
+
+	for _, ruleName := range rulesToDelete {
+		t.Logf("Attempting to delete firewall rule: %s", ruleName)
+		cmd := shell.Command{
+			Command: "gcloud",
+			Args: []string{
+				"compute", "firewall-rules", "delete", ruleName,
+				"--project=" + projectID,
+				"--quiet",
+			},
+		}
+		_, err := shell.RunCommandAndGetOutputE(t, cmd)
+		if err != nil {
+			t.Logf("Note: Error deleting firewall rule %s (may be benign if already gone): %v", ruleName, err)
+		} else {
+			t.Logf("Firewall rule %s deleted successfully or did not exist.", ruleName)
+		}
+	}
+	t.Logf("--- Firewall Rule Cleanup for instance suffix %s finished ---", ruleSuffix)
+}
+
+/*
+RemoveTempDir is a simple helper to clean up a temporary directory.
+*/
+func RemoveTempDir(t *testing.T, dirPath string) {
+	t.Logf("Cleaning up temporary source directory: %s", dirPath)
+	if err := os.RemoveAll(dirPath); err != nil {
+		t.Logf("WARN: Failed to remove temp source directory %s: %v", dirPath, err)
+	}
 }
