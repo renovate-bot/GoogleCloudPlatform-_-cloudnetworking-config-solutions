@@ -1,5 +1,5 @@
 name: lite-nlb
-project_id: pm-singleproject-30
+project_id: <gcp-project-id>
 region: us-central1
 backends:
   - group_name: regional-mig # region picked from value above
