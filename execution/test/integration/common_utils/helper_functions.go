@@ -20,6 +20,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	stdlib_strconv "strconv"
 	"strings"
@@ -28,6 +29,7 @@ import (
 
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 /*
@@ -210,17 +212,25 @@ func CleanupConfigDir(t *testing.T, configPath string) {
 GetSerialPortOutput gets the serial port output from a GCE instance.
 */
 func GetSerialPortOutput(t *testing.T, projectID, vmName, zone string, port int) (string, error) {
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args: []string{
-			"compute", "instances", "get-serial-port-output", vmName,
-			"--project", projectID,
-			"--zone", zone,
-			fmt.Sprintf("--port=%d", port),
-			"--quiet",
-		},
+	args := []string{
+		"compute", "instances", "get-serial-port-output", vmName,
+		"--project=" + projectID,
+		"--zone=" + zone,
+		fmt.Sprintf("--port=%d", port),
 	}
-	return shell.RunCommandAndGetOutputE(t, cmd)
+
+	// Use Go's native exec package to run the command and capture its output
+	// without printing it directly to the test log.
+	cmd := exec.Command("gcloud", args...)
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		// If the command fails, return the output (which contains the error message)
+		// and the error itself for proper handling.
+		return string(output), fmt.Errorf("gcloud get-serial-port-output failed: %w", err)
+	}
+
+	return string(output), nil
 }
 
 /*
@@ -773,28 +783,17 @@ func CreateZipArchive(t *testing.T, sourceDir string, targetZipPath string, file
 CreateFirewallRules creates the standard firewall rules required
 */
 func CreateFirewallRules(t *testing.T, projectID string, networkName string, ruleSuffix string) bool {
-	iapAndHealthCheckRanges := map[string]string{
-		"allow-ssh-from-iap":  "35.235.240.0/20",              // Google's IAP range for secure SSH
-		"allow-health-checks": "130.211.0.0/22,35.191.0.0/16", // Google's Health Checker ranges
-	}
+	// healthCheckRange := "130.211.0.0/22,35.191.0.0/16"
+	allowSourceRanges := "130.211.0.0/22,35.191.0.0/16,10.0.1.0/24"
 
 	rulesToCreate := map[string]string{
-		fmt.Sprintf("fw-allow-ssh-%s", ruleSuffix):   "tcp:22",
 		fmt.Sprintf("fw-allow-http-%s", ruleSuffix):  "tcp:80",
 		fmt.Sprintf("fw-allow-https-%s", ruleSuffix): "tcp:443",
 	}
 
 	allSucceeded := true
 	for ruleName, ruleProtoPort := range rulesToCreate {
-		var sourceRange string
-		if strings.Contains(ruleName, "ssh") {
-			sourceRange = iapAndHealthCheckRanges["allow-ssh-from-iap"]
-		} else {
-			// Both http and https rules get the health check range
-			sourceRange = iapAndHealthCheckRanges["allow-health-checks"]
-		}
-
-		t.Logf("Creating firewall rule: %s for %s from source %s", ruleName, ruleProtoPort, sourceRange)
+		t.Logf("Creating firewall rule: %s for %s from source %s", ruleName, ruleProtoPort, allowSourceRanges)
 		cmd := shell.Command{
 			Command: "gcloud",
 			Args: []string{
@@ -805,7 +804,7 @@ func CreateFirewallRules(t *testing.T, projectID string, networkName string, rul
 				"--priority=1000",
 				"--action=ALLOW",
 				"--rules=" + ruleProtoPort,
-				"--source-ranges=" + sourceRange, // Use the specific source range
+				"--source-ranges=" + allowSourceRanges,
 				"--format=json",
 			},
 		}
@@ -833,7 +832,6 @@ DeleteFirewallRules cleans up the standard firewall rules.
 func DeleteFirewallRules(t *testing.T, projectID string, ruleSuffix string) {
 	t.Logf("--- Starting Firewall Rule Cleanup for instance suffix: %s ---", ruleSuffix)
 	rulesToDelete := []string{
-		fmt.Sprintf("fw-allow-ssh-%s", ruleSuffix),
 		fmt.Sprintf("fw-allow-http-%s", ruleSuffix),
 		fmt.Sprintf("fw-allow-https-%s", ruleSuffix),
 	}
@@ -866,4 +864,189 @@ func RemoveTempDir(t *testing.T, dirPath string) {
 	if err := os.RemoveAll(dirPath); err != nil {
 		t.Logf("WARN: Failed to remove temp source directory %s: %v", dirPath, err)
 	}
+}
+
+/*
+GetCurrentGcloudUser retrieves the email address of the currently authenticated
+gcloud user.
+*/
+func GetCurrentGcloudUser(t *testing.T) string {
+	cmd := shell.Command{Command: "gcloud", Args: []string{"auth", "list", "--filter=status:ACTIVE", "--format=value(account)"}}
+	output, err := shell.RunCommandAndGetOutputE(t, cmd)
+	require.NoError(t, err, "Failed to get current gcloud user. Ensure gcloud is authenticated.")
+	currentUser := strings.TrimSpace(output)
+	require.NotEmpty(t, currentUser, "gcloud config get-value account returned empty string.")
+	t.Logf("Current gcloud principal identified as: %s", currentUser)
+	return currentUser
+}
+
+/*
+CreateVPCPeering establishes a VPC peering connection between two networks.
+*/
+func CreateVPCPeering(t *testing.T, projectID, network, peerNetworkURI, peeringName string) {
+	t.Logf("Creating peering '%s' from network '%s' to '%s'", peeringName, network, peerNetworkURI)
+	cmd := shell.Command{Command: "gcloud", Args: []string{
+		"compute", "networks", "peerings", "create", peeringName,
+		"--network=" + network,
+		"--peer-network=" + peerNetworkURI,
+		"--project=" + projectID,
+		"--export-custom-routes",
+		"--import-custom-routes",
+	}}
+	shell.RunCommand(t, cmd)
+}
+
+/*
+DeleteVPCPeering removes a VPC peering connection after a test completes.
+*/
+func DeleteVPCPeering(t *testing.T, projectID, network, peeringName string) {
+	t.Logf("--- Deleting peering '%s' from network '%s' ---", peeringName, network)
+	cmd := shell.Command{Command: "gcloud", Args: []string{
+		"compute", "networks", "peerings", "delete", peeringName,
+		"--network=" + network,
+		"--project=" + projectID,
+		"--quiet",
+	}}
+	shell.RunCommand(t, cmd)
+}
+
+/*
+AddSecurityProfileRuleAndAssociatePolicy adds a rule to an organization-level
+firewall policy to apply a security profile group, and then associates the
+policy with a VPC.
+*/
+func AddSecurityProfileRuleAndAssociatePolicy(t *testing.T, orgID, policyName, vpcName, projectID, profileGroupName, srcIPRanges string) {
+	profileGroupPath := fmt.Sprintf("organizations/%s/locations/global/securityProfileGroups/%s", orgID, profileGroupName)
+	vpcPath := fmt.Sprintf("projects/%s/global/networks/%s", projectID, vpcName)
+
+	t.Logf("Adding rule to policy '%s' to apply security profile group '%s'", policyName, profileGroupPath)
+	shell.RunCommand(t, shell.Command{Command: "gcloud", Args: []string{"compute", "firewall-policies", "rules", "create", "1000", "--firewall-policy=" + policyName, "--organization=" + orgID, "--action=apply_security_profile_group", "--security-profile-group=" + profileGroupPath, "--src-ip-ranges=" + srcIPRanges, "--layer4-configs=all", "--enable-logging", "--description=test-rule"}})
+
+	t.Logf("Associating policy '%s' with VPC '%s'", policyName, vpcPath)
+	shell.RunCommand(t, shell.Command{Command: "gcloud", Args: []string{"compute", "firewall-policies", "associations", "create", "--firewall-policy=" + policyName, "--organization=" + orgID, fmt.Sprintf("--name=%s-association", policyName), "--replace-association-on-target"}})
+}
+
+/*
+DeleteSecurityProfileRuleAndPolicyAssociation removes a firewall policy
+association from a VPC and deletes the corresponding security profile group
+rule from the policy.
+*/
+func DeleteSecurityProfileRuleAndPolicyAssociation(t *testing.T, orgID, policyName string) {
+	if policyName == "" {
+		return
+	}
+	t.Logf("--- Deleting Firewall Policy Association: %s-association ---", policyName)
+	shell.RunCommand(t, shell.Command{Command: "gcloud", Args: []string{"compute", "firewall-policies", "associations", "delete", fmt.Sprintf("%s-association", policyName), "--firewall-policy=" + policyName, "--organization=" + orgID}})
+
+	t.Logf("--- Deleting Firewall Policy Rule '1000' from policy '%s' ---", policyName)
+	shell.RunCommand(t, shell.Command{Command: "gcloud", Args: []string{"compute", "firewall-policies", "rules", "delete", "1000", "--firewall-policy=" + policyName, "--organization=" + orgID}})
+}
+
+/*
+CreateOrgFirewallPolicy creates a firewall policy at the organization level.
+*/
+func CreateOrgFirewallPolicy(t *testing.T, orgID, policyName string) {
+	t.Logf("Creating Firewall Policy '%s' in Org '%s'", policyName, orgID)
+	shell.RunCommand(t, shell.Command{Command: "gcloud", Args: []string{"compute", "firewall-policies", "create", "--short-name=" + policyName, "--organization=" + orgID, "--description=integ-test-policy"}})
+}
+
+/*
+DeleteOrgFirewallPolicy deletes an organization-level firewall policy after a
+test completes.
+*/
+func DeleteOrgFirewallPolicy(t *testing.T, orgID, policyName string) {
+	if policyName == "" {
+		return
+	}
+	t.Logf("--- Deleting Firewall Policy: %s ---", policyName)
+	shell.RunCommand(t, shell.Command{Command: "gcloud", Args: []string{"compute", "firewall-policies", "delete", policyName, "--organization=" + orgID, "--quiet"}})
+}
+
+/*
+GetOrgIDFromProject retrieves the parent Organization ID for a given Project ID.
+*/
+func GetOrgIDFromProject(t *testing.T, projectID string) string {
+	t.Logf("Attempting to find Organization ID for project '%s'...", projectID)
+	args := []string{"projects", "describe", projectID, "--format=value(parent.id)"}
+	cmd := shell.Command{Command: "gcloud", Args: args}
+	output, err := shell.RunCommandAndGetOutputE(t, cmd)
+	require.NoError(t, err, "Failed to run gcloud command to get organization ID for project %s: %v", projectID, err)
+	orgID := strings.TrimSpace(output)
+	require.NotEmpty(t, orgID, "Organization ID was not found for project %s. Ensure the project is directly under an organization.", projectID)
+	t.Logf("Found Organization ID: %s", orgID)
+	return orgID
+}
+
+/*
+GetRegionFromZone is a utility to extract the region from a zone name, for
+example, "us-central1-a" becomes "us-central1".
+*/
+func GetRegionFromZone(t *testing.T, zone string) string {
+	lastHyphen := strings.LastIndex(zone, "-")
+	if lastHyphen == -1 {
+		t.Fatalf("Invalid zone format: %s. Expected format like 'us-central1-a'", zone)
+	}
+	return zone[:lastHyphen]
+}
+
+/*
+CreateBiDirectionalVPCPeering establishes a two-way VPC peering connection
+between two networks.
+*/
+func CreateBiDirectionalVPCPeering(t *testing.T, projectID, networkA, networkB string) {
+	networkAURI := fmt.Sprintf("projects/%s/global/networks/%s", projectID, networkA)
+	networkBURI := fmt.Sprintf("projects/%s/global/networks/%s", projectID, networkB)
+	peeringAToB := fmt.Sprintf("peering-to-%s", networkB)
+	peeringBToA := fmt.Sprintf("peering-to-%s", networkA)
+
+	t.Logf("Creating peering '%s' from %s to %s", peeringAToB, networkA, networkB)
+	cmdAToB := shell.Command{Command: "gcloud", Args: []string{
+		"compute", "networks", "peerings", "create", peeringAToB,
+		"--network=" + networkA,
+		"--peer-network=" + networkBURI,
+		"--project=" + projectID,
+		"--export-custom-routes",
+		"--import-custom-routes",
+	}}
+	_, err := shell.RunCommandAndGetOutputE(t, cmdAToB)
+	require.NoError(t, err, "Failed to create peering from %s to %s", networkA, networkB)
+
+	t.Logf("Creating peering '%s' from %s to %s", peeringBToA, networkB, networkA)
+	cmdBToA := shell.Command{Command: "gcloud", Args: []string{
+		"compute", "networks", "peerings", "create", peeringBToA,
+		"--network=" + networkB,
+		"--peer-network=" + networkAURI,
+		"--project=" + projectID,
+		"--export-custom-routes",
+		"--import-custom-routes",
+	}}
+	_, err = shell.RunCommandAndGetOutputE(t, cmdBToA)
+	require.NoError(t, err, "Failed to create peering from %s to %s", networkB, networkA)
+}
+
+/*
+DeleteBiDirectionalVPCPeering removes a two-way VPC peering connection
+between two networks.
+*/
+func DeleteBiDirectionalVPCPeering(t *testing.T, projectID, networkA, networkB string) {
+	peeringAToB := fmt.Sprintf("peering-to-%s", networkB)
+	peeringBToA := fmt.Sprintf("peering-to-%s", networkA)
+
+	t.Logf("--- Deleting peering '%s' from network '%s' ---", peeringAToB, networkA)
+	cmdAToB := shell.Command{Command: "gcloud", Args: []string{
+		"compute", "networks", "peerings", "delete", peeringAToB,
+		"--network=" + networkA,
+		"--project=" + projectID,
+		"--quiet",
+	}}
+	shell.RunCommand(t, cmdAToB)
+
+	t.Logf("--- Deleting peering '%s' from network '%s' ---", peeringBToA, networkB)
+	cmdBToA := shell.Command{Command: "gcloud", Args: []string{
+		"compute", "networks", "peerings", "delete", peeringBToA,
+		"--network=" + networkB,
+		"--project=" + projectID,
+		"--quiet",
+	}}
+	shell.RunCommand(t, cmdBToA)
 }

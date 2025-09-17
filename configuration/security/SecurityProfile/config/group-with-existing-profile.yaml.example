@@ -1,0 +1,7 @@
+organization_id: <"YOUR_ORGANIZATION_ID">
+
+security_profile_group:
+  create: <true or false> #e.g. true
+  name: <name> #e.g. "legacy-app-sec-group"
+  description: <description> #e.g. "Group for legacy app with existing profile"
+  existing_threat_prevention_profile_id: "organizations/<YOUR_ORGANIZATION_ID>/locations/global/securityProfiles/<threat-profile-name>"

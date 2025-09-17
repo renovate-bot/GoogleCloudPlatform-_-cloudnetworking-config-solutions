@@ -1,0 +1,25 @@
+organization_id: <"YOUR_ORGANIZATION_ID">
+
+security_profile:
+  create: <true or false> #e.g. true
+  name: <name> #e.g. "app1-threat-profile"
+  type: <type-of-security-profile> #e.g. "THREAT_PREVENTION"
+  description: <description> #e.g. "Threat prevention for App1"
+  labels:
+    <key>: <value> #e.g. app: "app1"
+    <key>: <value> #e.g. env: "production"
+  threat_prevention_profile:
+    severity_overrides:
+      - severity: <value> #e.g. "CRITICAL"
+        action: <value> #e.g. "DENY"
+      - severity: <value> #e.g. "HIGH"
+        action: <value> #e.g. "ALERT"
+
+security_profile_group:
+  create: <true or false> #e.g. true
+  name: <name> #e.g. "app1-profile-group"
+  description: <description> #e.g. Security group for App1"
+  labels:
+    <key>: <value> #e.g. app: "app1"
+
+link_profile_to_group: <true or false> #e.g. true

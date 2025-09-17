@@ -34,7 +34,7 @@ var (
 	configFolderPathSP       = filepath.Join(projectRootSP, "test/unit/security/SecurityProfile/config")
 )
 var (
-	tfVarsSP = map[string]any{
+	tfVars = map[string]any{
 		"config_folder_path": configFolderPathSP,
 	}
 )
@@ -43,9 +43,9 @@ var (
 func TestSecurityProfilePlanExitCode(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: terraformDirectoryPathSP,
-		Vars:         tfVarsSP,
+		Vars:         tfVars,
 		Reconfigure:  true,
-		PlanFilePath: "./plan_sp",
+		PlanFilePath: "./plan",
 		NoColor:      true,
 	})
 
@@ -55,27 +55,32 @@ func TestSecurityProfilePlanExitCode(t *testing.T) {
 
 // TestSecurityProfileResourcesCount verifies the number of resources to be added by the plan.
 func TestSecurityProfileResourcesCount(t *testing.T) {
+	expectedAddCount := 3
+	expectedChangeCount := 0
+	expectedDestroyCount := 0
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: terraformDirectoryPathSP,
-		Vars:         tfVarsSP,
+		Vars:         tfVars,
 		Reconfigure:  true,
-		PlanFilePath: "./plan_sp",
+		PlanFilePath: "./plan",
 		NoColor:      true,
 	})
-
+	t.Log("Initializing and planning Terraform module...")
 	planStruct := terraform.InitAndPlan(t, terraformOptions)
 	resourceCount := terraform.GetResourceCount(t, planStruct)
-	expectedResourceCount := 3
-	assert.Equal(t, expectedResourceCount, resourceCount.Add, "Test Resource Count Add: Unexpected number of resources to be created")
+	t.Logf("Plan output: %d to add, %d to change, %d to destroy.", resourceCount.Add, resourceCount.Change, resourceCount.Destroy)
+	assert.Equal(t, expectedAddCount, resourceCount.Add, "The number of resources to ADD does not match the expected value.")
+	assert.Equal(t, expectedChangeCount, resourceCount.Change, "The number of resources to CHANGE does not match the expected value.")
+	assert.Equal(t, expectedDestroyCount, resourceCount.Destroy, "The number of resources to DESTROY does not match the expected value.")
 }
 
 // TestSecurityProfileModuleAddressListMatch verifies that a module instance is planned for each YAML config file.
 func TestSecurityProfileModuleAddressListMatch(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: terraformDirectoryPathSP,
-		Vars:         tfVarsSP,
+		Vars:         tfVars,
 		Reconfigure:  true,
-		PlanFilePath: "./plan_sp",
+		PlanFilePath: "./plan",
 		NoColor:      true,
 	})
 
@@ -96,7 +101,7 @@ func TestSecurityProfileModuleAddressListMatch(t *testing.T) {
 	assert.NotEmpty(t, expectedModuleKeys, "No YAML files found in the test config directory")
 	expectedModuleAddresses := []string{}
 	for _, key := range expectedModuleKeys {
-		expectedModuleAddresses = append(expectedModuleAddresses, fmt.Sprintf("module.security_profiles[\"%s\"]", key))
+		expectedModuleAddresses = append(expectedModuleAddresses, fmt.Sprintf("module.security_profile[\"%s\"]", key))
 	}
 	planStruct := terraform.InitAndPlanAndShow(t, terraformOptions)
 	content, err := terraform.ParsePlanJSON(planStruct)
@@ -104,7 +109,7 @@ func TestSecurityProfileModuleAddressListMatch(t *testing.T) {
 
 	actualModuleAddresses := make([]string, 0)
 	for _, element := range content.ResourceChangesMap {
-		if strings.HasPrefix(element.ModuleAddress, "module.security_profiles") &&
+		if strings.HasPrefix(element.ModuleAddress, "module.security_profile") &&
 			!slices.Contains(actualModuleAddresses, element.ModuleAddress) {
 			actualModuleAddresses = append(actualModuleAddresses, element.ModuleAddress)
 		}
