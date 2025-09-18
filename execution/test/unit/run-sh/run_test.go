@@ -20,7 +20,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -93,8 +92,7 @@ func TestStaticAnalysis(t *testing.T) {
 	cmd := exec.Command("shellcheck", runScriptPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		// t.Errorf("shellcheck failed with the following issues:\n%s", string(output))
-		t.Logf("shellcheck failed with the following issues:\n%s", string(output))
+		t.Errorf("shellcheck failed with the following issues:\n%s", string(output))
 	}
 }
 
@@ -110,17 +108,61 @@ func TestConfigurationSync(t *testing.T) {
 		t.Fatalf("Could not find valid_stages variable in run.sh")
 	}
 	scriptStages := strings.Fields(matches[1])
-	sort.Strings(scriptStages)
+
 	config := loadTestConfig(t)
 	var yamlStages []string
 	for stageName := range config.Stages {
 		yamlStages = append(yamlStages, stageName)
 	}
 	yamlStages = append(yamlStages, "all")
-	sort.Strings(yamlStages)
-	if !reflect.DeepEqual(scriptStages, yamlStages) {
-		// t.Errorf("Mismatch between run.sh stages and stages.yaml.\nScript: %v\nYAML:   %v", scriptStages, yamlStages)
-		t.Logf("Mismatch between run.sh stages and stages.yaml.\nScript: %v\nYAML:   %v", scriptStages, yamlStages)
+
+	// Use a map to count occurrences and find the difference.
+	diff := make(map[string]int)
+	for _, stage := range scriptStages {
+		diff[stage]++
+	}
+	for _, stage := range yamlStages {
+		diff[stage]--
+	}
+
+	var missingFromScript []string // Extra in YAML, should be added to script
+	var missingFromYAML []string   // Extra in script, should be removed from script
+
+	for stage, count := range diff {
+		if count > 0 { // Present in scriptStages but not yamlStages (or duplicated)
+			missingFromYAML = append(missingFromYAML, stage)
+		} else if count < 0 { // Present in yamlStages but not scriptStages
+			missingFromScript = append(missingFromScript, stage)
+		}
+	}
+
+	if len(missingFromScript) > 0 || len(missingFromYAML) > 0 {
+		// Sort the diff lists for consistent summary output
+		sort.Strings(missingFromScript)
+		sort.Strings(missingFromYAML)
+
+		// Sort the original full lists for context
+		sort.Strings(scriptStages)
+		sort.Strings(yamlStages)
+
+		var errorMsg strings.Builder
+		errorMsg.WriteString("Mismatch between run.sh stages and stages.yaml.\n")
+
+		// Add the precise diff summary
+		errorMsg.WriteString("--- Mismatch Details ---\n")
+		if len(missingFromYAML) > 0 {
+			errorMsg.WriteString(fmt.Sprintf("\t- Extra in run.sh (should be removed or fixed): %v\n", missingFromYAML))
+		}
+		if len(missingFromScript) > 0 {
+			errorMsg.WriteString(fmt.Sprintf("\t- Missing from run.sh (should be added): %v", missingFromScript))
+		}
+
+		// Add the full lists for complete context
+		errorMsg.WriteString("\n--- Full Lists ---\n")
+		errorMsg.WriteString(fmt.Sprintf("\tScript: %v\n", scriptStages))
+		errorMsg.WriteString(fmt.Sprintf("\tYAML:   %v", yamlStages))
+
+		t.Error(errorMsg.String())
 	}
 }
 
@@ -170,19 +212,16 @@ func TestLogicAndCommandVerification(t *testing.T) {
 				output, err := cmd.CombinedOutput()
 				if err != nil {
 					if tc.Name != "Missing Command Flag Defaults to Init" {
-						// t.Fatalf("script failed with error: %v\nOutput:\n%s", err, string(output))
-						t.Logf("script failed with error: %v\nOutput:\n%s", err, string(output))
+						t.Fatalf("script failed with error: %v\nOutput:\n%s", err, string(output))
 					}
 				}
 				content, err := os.ReadFile(mockOutputFile)
 				if err != nil {
-					// t.Fatalf("Could not read mock output file: %v", err)
-					t.Logf("Could not read mock output file: %v", err)
+					t.Fatalf("Could not read mock output file: %v", err)
 				}
 				got := strings.TrimSpace(string(content))
 				if got != expectedOutput {
-					// t.Errorf("Incorrect terraform command generated.\nExpected: %s\nGot: %s", expectedOutput, got)
-					t.Logf("Incorrect terraform command generated.\nExpected: %s\nGot: %s", expectedOutput, got)
+					t.Errorf("Incorrect terraform command generated.\nExpected: %s\nGot: %s", expectedOutput, got)
 				}
 			})
 		}
@@ -209,12 +248,10 @@ func TestLogicAndCommandVerification(t *testing.T) {
 		indexOfLastStage := strings.Index(outputStr, "08-network-security-integration/Out-Of-Band")
 
 		if indexOfFirstStage == -1 || indexOfLastStage == -1 {
-			// t.Fatalf("Could not find stage execution messages in output")
-			t.Logf("Could not find stage execution messages in output")
+			t.Fatalf("Could not find stage execution messages in output")
 		}
 		if indexOfLastStage > indexOfFirstStage {
-			// t.Errorf("Execution order is incorrect. Last stage (08) should appear before first stage (01) in destroy output.")
-			t.Logf("Execution order is incorrect. Last stage (08) should appear before first stage (01) in destroy output.")
+			t.Errorf("Execution order is incorrect. Last stage (08) should appear before first stage (01) in destroy output.")
 		}
 	})
 	t.Run("Invalid Input Handling", func(t *testing.T) {
@@ -237,8 +274,7 @@ func TestLogicAndCommandVerification(t *testing.T) {
 					t.Fatalf("Expected script to fail, but it succeeded.")
 				}
 				if !strings.Contains(out.String(), tc.ExpectedError) {
-					// t.Errorf("Expected output to contain '%s', but it didn't.\nGot:\n%s", tc.ExpectedError, out.String())
-					t.Logf("Execution order is incorrect. Last stage (08) should appear before first stage (01) in destroy output.")
+					t.Errorf("Expected output to contain '%s', but it didn't.\nGot:\n%s", tc.ExpectedError, out.String())
 				}
 			})
 		}

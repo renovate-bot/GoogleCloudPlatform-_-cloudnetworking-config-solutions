@@ -23,12 +23,13 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 # Define valid stages to be accepted by the -s flag
-valid_stages="all organization networking networking/ncc networking/firewallendpoint networking/CloudDNS/DNSManagedZones networking/CloudDNS/CloudDNSResponsePolicy security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer/bigquery producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/external load-balancing/network/passthrough/external network-security-integration/outofband network-security-integration/securityprofile network-security-integration/packetmirroringrule"
+valid_stages="all organization networking networking/ncc networking/firewallendpoint networking/CloudDNS/DNSManagedZones networking/CloudDNS/CloudDNSResponsePolicy security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer/bigquery producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/internal load-balancing/network/passthrough/external network-security-integration/outofband network-security-integration/securityprofile network-security-integration/packetmirroringrule"
 
 # Define valid Terraform commands to be accepted by the -tf or --tfcommand flag
 valid_tf_commands="init apply apply-auto-approve destroy destroy-auto-approve init-apply init-apply-auto-approve"
 
 # Define stage to path mapping (excluding "all")
+# shellcheck disable=SC2034
 stage_path_map=(
     "organization=01-organization"
     "networking=02-networking"
@@ -70,6 +71,7 @@ stage_path_map=(
 )
 
 # Define tfvars to stage path mapping (excluding "all")
+# shellcheck disable=SC2034
 stagewise_tfvar_path_map=(
     "01-organization=../../configuration/organization.tfvars"
     "02-networking=../../configuration/networking.tfvars"
@@ -120,6 +122,7 @@ security_config_map=(
 )
 
 # Define stage to description mapping (excluding "all")
+# shellcheck disable=SC2034
 stage_wise_description_map=(
   "all=Progresses through each stage individually."
   "organization=Executes 01-organization stage, manages Google Cloud APIs."
@@ -162,6 +165,7 @@ stage_wise_description_map=(
 )
 
 # Define tfcommand to description mapping.
+# shellcheck disable=SC2034
 tfcommand_wise_description_map=(
     "init=Prepare your working directory for other commands."
     "apply=Create or update infrastructure."
@@ -175,16 +179,12 @@ tfcommand_wise_description_map=(
 # Function to get the value associated with a key present in the *_map variables created
 function get_value {
   local key="$1"
-  local map_name="$2"    # Name of the map array
-  local map_ref
-  eval "map_ref=(\"\${$map_name[@]}\")"
+  local -n map_ref="$2" # Use a name reference to the map array
 
-  # Iterate directly over the elements of the array
+  # Iterate directly over the elements of the referenced array
   for pair in "${map_ref[@]}"; do
-    key_from_map="${pair%%=*}"       # Extract key (part before '=')
-    if [[ "$key_from_map" == "$key" ]]; then
-      value="${pair#*=}"
-      echo "${value}"
+    if [[ "${pair%%=*}" == "$key" ]]; then
+      echo "${pair#*=}"
       return
     fi
   done
@@ -200,19 +200,6 @@ function check_yaml_exists {
     fi
 }
 
-# Function to populate valid_producers_consumers array based on existing .yaml files
-function populate_valid_producers_consumers() {
-    for stage in "${!security_config_map[@]}"; do
-        config_path="${security_config_map[$stage]}"
-        if check_yaml_exists "$config_path"; then
-            valid_producers_consumers+=("$stage")
-        fi
-    done
-}
-
-# Call the function to populate the valid_producers_consumers array
-populate_valid_producers_consumers
-
 # Displays the table formatting.
 tableprint() {
     printf "\t\t "
@@ -222,14 +209,14 @@ tableprint() {
 
 # Describing the usage of the run.sh shell script.
 usage() {
-  printf "Usage: $0 [\033[1m-s|--stage\033[0m <stage>] [[\033[1m-t|--tfcommand\033[0m <command>] [\033[1m-h|--help\033[0m]\n"
+  printf "Usage: %s [\033[1m-s|--stage\033[0m <stage>] [[\033[1m-t|--tfcommand\033[0m <command>] [\033[1m-h|--help\033[0m]\n" "$0"
   printf " \033[1m-h, --help\033[0m              Displays the detailed help.\n"
   printf " \033[1m-s, --stage\033[0m             STAGENAME to be executed (STAGENAME is case insensitive). e.g. '-s all'  \n\t Valid options are: \n"
   tableprint
   printf "\t\t |%-55s| %-118s|\n" "STAGENAME" "Description"
   tableprint
   for stage_name in $valid_stages; do
-    value=$(get_value $stage_name "stage_wise_description_map")
+    value=$(get_value "$stage_name" "stage_wise_description_map")
     printf "\t\t |%-55s| %-118s|\n" "$stage_name"  "$value"
   done
   tableprint
@@ -238,7 +225,7 @@ usage() {
   printf "\t\t |%-55s| %-118s|\n" "TFCOMMAND" "Description"
   tableprint
   for tfcommand_value in $valid_tf_commands; do
-    value=$(get_value $tfcommand_value "tfcommand_wise_description_map")
+    value=$(get_value "$tfcommand_value" "tfcommand_wise_description_map")
     printf "\t\t |%-55s| %-118s|\n" "$tfcommand_value"  "$value"
   done
   tableprint
@@ -248,7 +235,7 @@ usage() {
 confirm() {
     while true; do
         echo -e "${RED} [WARNING] : This action modifies existing resources on all stages without further confirmation. Proceed with caution..${NC}"
-        read -p "Do you want to continue. Please answer y or n. $1 (y/n) " confirmation_input
+        read -r -p "Do you want to continue. Please answer y or n. (y/n) " confirmation_input
         case $confirmation_input in
             [Yy]* ) break;; # If user confirms, exit the loop
             [Nn]* ) exit 1;; # If user declines, exit the script
@@ -262,15 +249,15 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -s | --stage)
             stage="$2"
-            if [[ ! " $valid_stages " =~ " $stage " ]]; then
-                printf "${RED}Error: Invalid stage '$stage'. Valid options are: '${valid_stages// /\',\'}' ${NC}" >&2
+            if [[ ! " $valid_stages " =~ (^| )$stage( |$) ]]; then
+                printf "%sError: Invalid stage '%s'. Valid options are: '%s'%s\n" "${RED}" "$stage" "${valid_stages// /,}" "${NC}" >&2
                 exit 1
             fi
             shift 2 ;;
         -t | --tfcommand)
             tfcommand="$2"
-            if [[ ! " $valid_tf_commands " =~ " $tfcommand " ]]; then
-                printf "${RED}Error: Invalid Terraform command '$tfcommand'. Valid options are: '${valid_tf_commands// /\',\'}' ${NC}" >&2
+            if [[ ! " $valid_tf_commands " =~ (^| )$tfcommand( |$) ]]; then
+                printf "%sError: Invalid Terraform command '%s'. Valid options are: '%s'%s\n" "${RED}" "$tfcommand" "${valid_tf_commands// /,}" "${NC}" >&2
                 exit 1
             fi
             shift 2 ;;
@@ -278,7 +265,7 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0 ;;
         *)
-            echo "${RED}Invalid option: $1${NC}" >&2
+            printf "%sInvalid option: %s%s\n" "${RED}" "$1" "${NC}" >&2
             usage
             exit 1 ;;
     esac
@@ -372,11 +359,11 @@ else
       case "$tfcommand" in
           init) terraform init -var-file="$tfvar_file_path";;
           apply) terraform apply -var-file="$tfvar_file_path";;
-          apply-auto-approve) terraform apply -var-file=$tfvar_file_path --auto-approve ;;
+          apply-auto-approve) terraform apply -var-file="$tfvar_file_path" --auto-approve ;;
           destroy) terraform destroy -var-file="$tfvar_file_path";;
           destroy-auto-approve) terraform destroy -var-file="$tfvar_file_path" --auto-approve;;
           init-apply) terraform init && terraform apply -var-file="$tfvar_file_path";;
-          init-apply-auto-approve) terraform init && terraform apply -var-file=$tfvar_file_path --auto-approve ;;
+          init-apply-auto-approve) terraform init && terraform apply -var-file="$tfvar_file_path" --auto-approve ;;
           *) echo "${RED}Error: Invalid tfcommand '$tfcommand'${NC}" >&2; exit 1 ;;
       esac
     )
