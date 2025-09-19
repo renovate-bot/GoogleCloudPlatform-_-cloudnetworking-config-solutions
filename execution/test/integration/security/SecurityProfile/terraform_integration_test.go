@@ -80,9 +80,9 @@ func TestSecurityProfileIntegration(t *testing.T) {
         if [ $? -ne 0 ]; then echo "%s"; else echo "%s"; fi
     `, vmServerName, successMessage, failureMessage)
 
-	common_utils.CreateGCEInstance(t, projectID, vmServerName, zone, subnetName, serverStartupScript, "", false)
+	common_utils.CreateGCEInstance(t, projectID, vmServerName, zone, subnetName, serverStartupScript, "", false, "", "")
 	defer common_utils.DeleteGCEInstance(t, projectID, vmServerName, zone)
-	common_utils.CreateGCEInstance(t, projectID, vmClientName, zone, subnetName, clientStartupScript, "", false)
+	common_utils.CreateGCEInstance(t, projectID, vmClientName, zone, subnetName, clientStartupScript, "", false, "", "")
 	defer common_utils.DeleteGCEInstance(t, projectID, vmClientName, zone)
 
 	profileGroupName := "spg-integ-test-" + instanceSuffix

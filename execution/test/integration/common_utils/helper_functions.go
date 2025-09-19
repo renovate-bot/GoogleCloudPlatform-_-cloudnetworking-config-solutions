@@ -130,7 +130,7 @@ func CreateServiceConnectionPolicy(t *testing.T, projectID string, region string
 CreateGCEInstance creates a GCE VM with a startup script.
 It uses --metadata-from-file for robustness.
 */
-func CreateGCEInstance(t *testing.T, projectID, vmName, zone, subnetName, startupScript string, scopes string, hasExternalIP bool) {
+func CreateGCEInstance(t *testing.T, projectID, vmName, zone, subnetName, startupScript string, scopes string, hasExternalIP bool, imageProject string, imageFamily string) {
 	// Create a temporary file with a predictable name based on the unique vmName.
 	scriptFileName := fmt.Sprintf("startup-script-%s.sh", vmName)
 	scriptFile, err := os.Create(scriptFileName)
@@ -150,6 +150,11 @@ func CreateGCEInstance(t *testing.T, projectID, vmName, zone, subnetName, startu
 		scopes = "https://www.googleapis.com/auth/cloud-platform"
 	}
 
+	if imageProject == "" && imageFamily == "" {
+		imageProject = "ubuntu-os-cloud"
+		imageFamily = "ubuntu-2204-lts"
+	}
+
 	args := []string{
 		"compute", "instances", "create", vmName,
 		"--project", projectID,
@@ -160,6 +165,13 @@ func CreateGCEInstance(t *testing.T, projectID, vmName, zone, subnetName, startu
 	}
 	if !hasExternalIP {
 		args = append(args, "--no-address")
+	}
+
+	if imageProject != "" {
+		args = append(args, "--image-project", imageProject)
+	}
+	if imageFamily != "" {
+		args = append(args, "--image-family", imageFamily)
 	}
 
 	// Use RunCommandAndGetOutputE for consistent and explicit error handling.

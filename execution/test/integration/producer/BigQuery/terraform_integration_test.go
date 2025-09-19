@@ -148,7 +148,7 @@ func TestGCEStartupScriptConnectsToBigQuery(t *testing.T) {
 		fi
 	`, bqLocation, projectID, datasetIDByVM, projectID, datasetIDByVM, successMessage)
 
-	common_utils.CreateGCEInstance(t, projectID, vmName, zone, subnetName, startupScript, "", false) // false for no external IP
+	common_utils.CreateGCEInstance(t, projectID, vmName, zone, subnetName, startupScript, "", false, "", "") // false for no external IP
 	defer common_utils.DeleteGCEInstance(t, projectID, vmName, zone)
 	defer deleteBigQueryDataset(t, projectID, datasetIDByVM)
 
