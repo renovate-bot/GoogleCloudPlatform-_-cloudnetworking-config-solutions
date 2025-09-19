@@ -284,7 +284,7 @@ module "gke_producer" {
 *************************************************/
 
 module "bigquery_producer" {
-  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v42.0.0"
+  source     = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/iam-service-account?ref=v42.1.0"
   project_id = var.project_id
   name       = var.producer_bq_sa_name
   iam = {
