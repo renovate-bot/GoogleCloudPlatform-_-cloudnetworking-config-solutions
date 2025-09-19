@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/common_utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/gruntwork-io/terratest/modules/shell"
 	"github.com/gruntwork-io/terratest/modules/terraform"
@@ -246,10 +247,10 @@ func TestExistingVPCNetworkModule(t *testing.T) {
 	})
 
 	// Create VPC and subnet outside of the terraform module.
-	createVPCSubnets(t, projectID, networkName, subnetworkName, region)
+	common_utils.CreateVPCSubnets(t, projectID, networkName, subnetworkName, region)
 
 	// Delete VPC and subnet created outside of the terraform module.
-	defer deleteVPCSubnets(t, projectID, networkName, subnetworkName, region)
+	defer common_utils.DeleteVPCSubnets(t, projectID, networkName, subnetworkName, region)
 
 	// Clean up resources with "terraform destroy" at the end of the test.
 	defer terraform.Destroy(t, terraformOptions)
@@ -272,7 +273,7 @@ func TestExistingVPCNetworkModule(t *testing.T) {
 	// Create SCP outside of terraform
 	defaultServiceClass := "gcp-memorystore-redis"
 	policyName := fmt.Sprintf("SCP-%s-%s", networkName, defaultServiceClass)
-	createServiceConnectionPolicy(t, projectID, region, networkName, policyName, subnetworkName, defaultServiceClass, 5) //Pass the correct parameters
+	common_utils.CreateServiceConnectionPolicy(t, projectID, region, networkName, policyName, subnetworkName, defaultServiceClass, 5) //Pass the correct parameters
 
 	t.Logf("======= Verify Service Connection Policy (Terraform Output) =======")
 	output := gjson.Parse(terraform.OutputJson(t, terraformOptions, "service_connection_policy_details"))
@@ -346,86 +347,6 @@ func TestExistingVPCNetworkModule(t *testing.T) {
 		t.Errorf("Invalid PSA range created = %v, want = %v", got, want)
 	}
 
-}
-
-/*
-deleteVPCSubnets is a helper function which deletes the VPC and subnets after
-completion of the test expecting to use existing VPC and subnets.
-*/
-func deleteVPCSubnets(t *testing.T, projectID string, networkName string, subnetworkName string, region string) {
-	text := "compute"
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "networks", "subnets", "delete", subnetworkName, "--region=" + region, "--project=" + projectID, "--quiet"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-
-	// Sleep for 60 seconds to ensure the deleted subnets is reliably reflected.
-	time.Sleep(60 * time.Second)
-
-	cmd = shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "networks", "delete", networkName, "--project=" + projectID, "--quiet"},
-	}
-	_, err = shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-}
-
-/*
-createVPCSubnets is a helper function which creates the VPC and subnets before
-execution of the test expecting to use existing VPC and subnets.
-*/
-
-func createVPCSubnets(t *testing.T, projectID string, networkName string, subnetworkName string, region string) {
-	subnetworkIPCIDR = "10.0.1.0/24"
-	text := "compute"
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "networks", "create", networkName, "--project=" + projectID, "--format=json", "--bgp-routing-mode=global", "--subnet-mode=custom", "--verbosity=none"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-	time.Sleep(60 * time.Second)
-	cmd = shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "networks", "subnets", "create", subnetworkName, "--network=" + networkName, "--project=" + projectID, "--range=" + subnetworkIPCIDR, "--region=" + region, "--format=json", "--enable-private-ip-google-access", "--enable-flow-logs", "--verbosity=none"},
-	}
-	_, err = shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-}
-
-// Function to create Service Connection Policy
-func createServiceConnectionPolicy(t *testing.T, projectID string, region string, networkName string, policyName string, subnetworkName string, serviceClass string, connectionLimit int) {
-	// Get subnet self link from subnet ID using gcloud command
-	subnetSelfLink := fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/regions/%s/subnetworks/%s", projectID, region, subnetworkName)
-
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args: []string{
-			"network-connectivity", "service-connection-policies", "create",
-			policyName, // Add the policyName here as the first argument after "create"
-			"--project", projectID,
-			"--region", region,
-			"--network", networkName,
-			"--service-class", serviceClass,
-			"--subnets", subnetSelfLink,
-			"--psc-connection-limit", fmt.Sprintf("%d", connectionLimit),
-			"--quiet",
-		},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("Error creating Service Connection Policy: %s", err)
-	}
 }
 
 /*

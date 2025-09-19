@@ -1,0 +1,14 @@
+response_policies:
+  - name: "gke-response-policy"
+    project_id: "<gcp-project-id>"
+    description: "response policy for gke clusters"
+    policy_create: true
+    clusters:
+      cluster-1: "projects/<gcp-project-id>/locations/us-central1/clusters/<your-cluster-name>"
+      cluster-2: "projects/<gcp-project-id>/locations/europe-west1/clusters/<your-cluster-name>"
+    networks:
+      default: "projects/<gcp-project-id>/global/networks/<your-network-name>"
+    rules:
+      - rule1:
+          dns_name: "*.external.com."
+          behavior: "block"

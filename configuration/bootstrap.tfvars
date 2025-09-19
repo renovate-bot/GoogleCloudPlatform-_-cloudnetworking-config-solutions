@@ -1,4 +1,5 @@
 folder_id                 = ""
+organization_id           = ""
 bootstrap_project_id      = ""
 network_hostproject_id    = ""
 network_serviceproject_id = "" // <service(producer/consumer)-project-id>
@@ -23,3 +24,4 @@ consumer_umig_administrator          = ["user:umig-user-example@example.com"]
 consumer_vpc_connector_administrator = ["user:user-example@example.com"]
 consumer_appengine_administrator     = ["user:user-example@example.com"]
 consumer_load_balacing_administrator = ["user:user-example@example.com"]
+nsi_administrator                    = ["user:nsi-user-example@example.com"]

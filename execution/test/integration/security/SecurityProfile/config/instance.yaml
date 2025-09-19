@@ -1,7 +1,7 @@
 organization_id: "123456789012"
 security_profile:
   create: true
-  name: sp-integ-test-5w1xz8
+  name: sp-integ-test-iwxgfw
   type: THREAT_PREVENTION
   description: Deny INFORMATIONAL traffic for testing
   threat_prevention_profile:
@@ -10,5 +10,5 @@ security_profile:
       severity: INFORMATIONAL
 security_profile_group:
   create: true
-  name: spg-integ-test-5w1xz8
+  name: spg-integ-test-iwxgfw
 link_profile_to_group: true

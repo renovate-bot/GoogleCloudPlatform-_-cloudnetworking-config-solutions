@@ -71,14 +71,12 @@ This section guides you through the process of deploying the solution.
 
 #### Prerequisites
 
-For the usage of this configuration solution, the following should be installed:
+For the common prerequisites for this repository, please refer to the **[prerequisites.md](../prerequisites.md)** guide. Any additional prerequisites specific to this user journey will be listed below.
 
-1.  **Terraform**: Use with Terraform v1.3.0 or later.
-2.  **gcloud SDK**: Install the SDK to authenticate to Google Cloud.
-3.  **IAM Permissions**: Ensure the user or Service Account running Terraform has the following roles:
-    * `roles/compute.networkAdmin` on the project.
-    * `roles/compute.admin` on the project (for creating test VPCs, VMs, etc.).
-    * `roles/resourcemanager.organizationViewer` on the organization.
+ **IAM Permissions**: Ensure the user or Service Account running Terraform has the following roles:
+  * `roles/compute.networkAdmin` on the project.
+  * `roles/compute.admin` on the project (for creating test VPCs, VMs, etc.).
+  * `roles/resourcemanager.organizationViewer` on the organization.
 
 #### Deploy through “terraform-cli”
 
@@ -145,5 +143,6 @@ For the usage of this configuration solution, the following should be installed:
 
 ### Submit feedback
 
-* For issues with the products used, contact [Cloud Customer Care](https://cloud.google.com/support-hub).
-* For issues with the Terraform code or this guide, please [submit an issue on the GitHub repository](https://github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/issues).
+For common troubleshooting steps and solutions, please refer to the **[troubleshooting.md](../troubleshooting.md)** guide.
+
+To provide feedback, please follow the instructions in our **[submit-feedback.md](../submit-feedback.md)** guide.

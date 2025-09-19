@@ -1,0 +1,12 @@
+action: mirror
+direction: INGRESS
+firewall_policy_name: fwp-pmr-test-ysapug
+match:
+  layer4_configs:
+  - ip_protocol: all
+  src_ip_ranges:
+  - 10.100.0.1/32
+priority: 1000
+project_id: test-project-id
+rule_name: mirror-internal-traffic-ysapug
+security_profile_group: organizations/test-organization-id/locations/global/securityProfileGroups/spg-pmr-test-ysapug

@@ -1,0 +1,13 @@
+organization_id: <"YOUR_ORGANIZATION_ID">
+
+security_profile:
+  create: <true or false> #e.g. true
+  name: <name> #e.g. "web-traffic-intercept-profile"
+  type: <type-of-security-profile> #e.g. "CUSTOM_INTERCEPT"
+  description: <description> #e.g. "Intercepts web traffic for deep packet inspection"
+  labels:
+    traffic: <traffic> #e.g. "web"
+  custom_intercept_profile:
+    intercept_endpoint_group: "projects/<your-gcp-project-id>/locations/global/interceptEndpointGroups/<intercept-endpoint-group-name>"
+
+# No security profile group is created in this scenario

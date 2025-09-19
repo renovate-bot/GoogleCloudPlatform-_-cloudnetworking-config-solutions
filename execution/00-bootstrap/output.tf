@@ -28,6 +28,16 @@ output "networking_email" {
   value       = module.networking.iam_email
 }
 
+output "dns_managed_zones_email" {
+  description = "DNS Managed Zones stage service account IAM email."
+  value       = module.dns_managed_zones.iam_email
+}
+
+output "dns_response_policy_email" {
+  description = "DNS Response Policy stage service account IAM email."
+  value       = module.dns_response_policy.iam_email
+}
+
 output "security_email" {
   description = "Security stage service account IAM email."
   value       = module.security.iam_email
@@ -56,6 +66,11 @@ output "producer_vertex_email" {
 output "producer_gke_email" {
   description = "GKE producer stage service account IAM email."
   value       = module.gke_producer.iam_email
+}
+
+output "producer_bigquery_email" {
+  description = "BigQuery producer stage service account IAM email."
+  value       = module.bigquery_producer.iam_email
 }
 
 output "producer_connectivity_email" {
@@ -103,3 +118,7 @@ output "consumer_umig_email" {
   value       = module.umig_consumer.iam_email
 }
 
+output "nsi_email" {
+  description = "Network Security Integration stage service account IAM email."
+  value       = module.network_security_integration.iam_email
+}

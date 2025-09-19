@@ -1,0 +1,14 @@
+# Creates only a Mirroring Deployment.
+# This is useful for adding a new collector in a new zone to an existing setup.
+
+# You must provide the ID of the parent Deployment Group that already exists.
+existing_deployment_group_id: "projects/<deployment-group-gcp-project-id>/locations/global/mirroringDeploymentGroups/<deployment-group-name>" # <-- Replace
+
+# Terraform will create only the resources defined in the list below.
+deployments:
+  - deployment_project_id: <deployment-project-id> #e.g. "dp-test-project1"
+    name: <name> #e.g."ha-deployment-us-central1-a"
+    location: <location> #e.g."us-central1-a"
+    # Point to the forwarding rule
+    forwarding_rule_link: <forwarding-rule-link> #e.g."projects/deployment1-gcp-project-id/regions/us-central1/forwardingRules/collector-fr-us-a"
+    description: <description> #e.g."Mirroring deployment for zone A"

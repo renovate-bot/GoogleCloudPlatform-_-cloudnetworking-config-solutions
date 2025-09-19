@@ -15,7 +15,7 @@ package integrationtest
 
 import (
 	"fmt"
-	"github.com/gruntwork-io/terratest/modules/shell"
+	"github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/common_utils"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v2"
@@ -101,16 +101,14 @@ func TestCreateCloudSQL(t *testing.T) {
 		SetVarsAfterVarFiles: true,
 	})
 	// Create VPC outside of the terraform module.
-	err := createVPC(t, projectID, networkName)
-	if err != nil {
-		t.Fatal(err)
-	}
+	common_utils.CreateVPCSubnets(t, projectID, networkName, "", "")
+
 	// Create PSA in the VPC.
-	createPSA(t, projectID, networkName, rangeName)
+	common_utils.CreatePSA(t, projectID, networkName, rangeName)
 	// Delete VPC created outside of the terraform module.
-	defer deleteVPC(t, projectID, networkName)
+	defer common_utils.DeleteVPCSubnets(t, projectID, networkName, "", "")
 	// Remove PSA from the VPC.
-	defer deletePSA(t, projectID, networkName, rangeName)
+	defer common_utils.DeletePSA(t, projectID, networkName, rangeName)
 	// Clean up resources with "terraform destroy" at the end of the test.
 	defer terraform.Destroy(t, terraformOptions)
 	// Run "terraform init" and "terraform apply". Fail the test if there are any errors.
@@ -159,98 +157,6 @@ func TestCreateCloudSQL(t *testing.T) {
 	if got == "" {
 		t.Errorf("Cloud SQL Instance does not contain private ip = %v", got)
 	}
-}
-
-/*
-deleteVPC is a helper function which deletes the VPC after
-completion of the test.
-*/
-func deleteVPC(t *testing.T, projectID string, networkName string) {
-	time.Sleep(60 * time.Second)
-	text := "compute"
-	time.Sleep(60 * time.Second)
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "networks", "delete", networkName, "--project=" + projectID, "--quiet"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-}
-
-/*
-deletePSA is a helper function which deletes the PSA range after the
-execution of the test.
-*/
-func deletePSA(t *testing.T, projectID string, networkName string, rangeName string) {
-	// Delete PSA IP range
-	time.Sleep(60 * time.Second)
-	text := "compute"
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "addresses", "delete", rangeName, "--project=" + projectID, "--global", "--verbosity=info", "--format=json", "--quiet"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Logf("===Error %s Encountered while executing %s", err, text)
-	}
-	time.Sleep(60 * time.Second)
-	// Delete PSA range
-	text = "services"
-	cmd = shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "vpc-peerings", "delete", "--service=servicenetworking.googleapis.com", "--project=" + projectID, "--network=" + networkName, "--verbosity=info", "--format=json", "--quiet"},
-	}
-	_, err = shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Logf("===Error %s Encountered while executing %s", err, text)
-	}
-}
-
-/*
-createVPC is a helper function which creates the VPC before the
-execution of the test.
-*/
-func createVPC(t *testing.T, projectID string, networkName string) error {
-	text := "compute"
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "networks", "create", networkName, "--project=" + projectID, "--format=json", "--bgp-routing-mode=global", "--subnet-mode=custom", "--verbosity=info"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-	return err
-}
-
-/*
-createPSA is a helper function which creates the PSA range before the
-execution of the test.
-*/
-func createPSA(t *testing.T, projectID string, networkName string, rangeName string) {
-	// Create an IP range
-	text := "compute"
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "addresses", "create", rangeName, "--purpose=VPC_PEERING", "--addresses=10.0.64.0", "--prefix-length=20", "--project=" + projectID, "--network=" + networkName, "--global", "--verbosity=info", "--format=json"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-	// Create PSA range
-	text = "services"
-	cmd = shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "vpc-peerings", "connect", "--service=servicenetworking.googleapis.com", "--ranges=" + rangeName, "--project=" + projectID, "--network=" + networkName, "--verbosity=info", "--format=json"},
-	}
-	_, err = shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-	time.Sleep(60 * time.Second)
 }
 
 /*

@@ -6,8 +6,8 @@
 **/.terraform.lock.hcl
 **/*.auto.tfvars
 **/pkg*
-go.mod
 go.sum
 **/*.log
 **/*plan*
 **/*.DS_Store
+__pycache__/

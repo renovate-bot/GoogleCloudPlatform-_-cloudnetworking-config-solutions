@@ -1,0 +1,8 @@
+# For testing
+pyfakefs
+PyYAML
+
+# For the generator scripts
+absl-py
+Jinja2
+requests

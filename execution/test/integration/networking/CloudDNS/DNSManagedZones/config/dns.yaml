@@ -1,0 +1,44 @@
+zones:
+- zone: private-zone-4698029051772351962
+  project_id: <gcp-project-id>
+  description: Private zone for corp services
+  force_destroy: true
+  zone_config:
+    domain: corp.internal.
+    visibility: private
+    private_visibility_config:
+      networks:
+      - network_url: projects/<gcp-project-id>/global/networks/<network-name>
+      - network_url: projects/<gcp-project-id>/global/networks/<peer-network-name>
+  recordsets:
+  - name: app.corp.internal.
+    type: A
+    ttl: 300
+    records:
+    - 10.0.0.10
+  - name: alias.corp.internal.
+    type: CNAME
+    ttl: 300
+    records:
+    - app.corp.internal.
+- zone: forwarding-zone-4698029051772351962
+  project_id: <gcp-project-id>
+  description: Forwarding zone to on-prem
+  force_destroy: true
+  zone_config:
+    domain: onprem.internal.
+    visibility: forwarding
+    forwarding_config:
+      target_name_servers:
+      - ipv4_address: 192.168.1.100
+      - ipv4_address: 192.168.1.101
+- zone: peering-zone-4698029051772351962
+  project_id: <gcp-project-id>
+  description: Peering zone with peer network
+  force_destroy: true
+  zone_config:
+    domain: peered.internal.
+    visibility: peering
+    peering_config:
+      target_network:
+        network_url: projects/sridharshinitesting1/global/networks/<network-name>

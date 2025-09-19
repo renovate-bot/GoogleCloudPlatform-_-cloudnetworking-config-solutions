@@ -1,0 +1,17 @@
+# Creates only the producer-facing resources:
+# Deployment Group -> Deployment
+
+deployment_group:
+  create: <true or false> #e.g. true
+  deployment_group_project_id: <deployment-group-project-id> #e.g. "dgp-test-project"
+  name: <name> #e.g."ha-multi-consumer-dg"
+  description: <description> #e.g."Deployment Group for us-central1 with HA collectors"
+  producer_network_link: <producer-network-link> #e.g."projects/deployment-group-gcp-project-id/global/networks/test-producer-vpc1"
+
+deployments:
+  - deployment_project_id: <deployment-project-id> #e.g. "dp-test-project1"
+    name: <name> #e.g."ha-deployment-us-central1-a"
+    location: <location> #e.g."us-central1-a"
+    # Point to the forwarding rule
+    forwarding_rule_link: <forwarding-rule-link> #e.g."projects/deployment1-gcp-project-id/regions/us-central1/forwardingRules/collector-fr-us-a"
+    description: <description> #e.g."Mirroring deployment for zone A"

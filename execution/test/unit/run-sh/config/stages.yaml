@@ -1,0 +1,144 @@
+# This is the single source of truth for all stage configurations.
+# It maps the friendly stage name to its directory path and its .tfvars file path.
+stages:
+  organization:
+    dir_path: "01-organization"
+    tfvars_path: "../../configuration/organization.tfvars"
+  networking:
+    dir_path: "02-networking"
+    tfvars_path: "../../configuration/networking.tfvars"
+  "networking/ncc":
+    dir_path: "02-networking/NCC"
+    tfvars_path: "../../../configuration/networking/ncc/ncc.tfvars"
+  "networking/firewallendpoint":
+    dir_path: "02-networking/FirewallEndpoint"
+    tfvars_path: "../../../configuration/networking/FirewallEndpoint/firewallendpoint.tfvars"
+  "networking/CloudDNS/DNSManagedZones":
+    dir_path: "02-networking/CloudDNS/DNSManagedZones"
+    tfvars_path: "../../../../configuration/networking/CloudDNS/dns.tfvars"
+  "networking/CloudDNS/CloudDNSResponsePolicy":
+    dir_path: "02-networking/CloudDNS/CloudDNSResponsePolicy"
+    tfvars_path: "../../../../configuration/networking/CloudDNS/responsepolicy.tfvars"
+  "security/firewall/firewallpolicy":
+    dir_path: "03-security/Firewall/FirewallPolicy"
+    tfvars_path: "../../../../configuration/security/Firewall/FirewallPolicy/firewallpolicy.tfvars"
+  "security/securityprofile":
+    dir_path: "03-security/SecurityProfile"
+    tfvars_path: "../../../configuration/security/SecurityProfile/securityprofile.tfvars"
+  "security/certificates/compute-ssl-certs/google-managed":
+    dir_path: "03-security/Certificates/Compute-SSL-Certs/Google-Managed"
+    tfvars_path: "../../../../../configuration/security/Certificates/Compute-SSL-Certs/Google-Managed/google_managed_ssl.tfvars"
+  "security/alloydb":
+    dir_path: "03-security/AlloyDB"
+    tfvars_path: "../../../configuration/security/alloydb.tfvars"
+  "security/mrc":
+    dir_path: "03-security/MRC"
+    tfvars_path: "../../../configuration/security/mrc.tfvars"
+  "security/cloudsql":
+    dir_path: "03-security/CloudSQL"
+    tfvars_path: "../../../configuration/security/cloudsql.tfvars"
+  "security/gce":
+    dir_path: "03-security/GCE"
+    tfvars_path: "../../../configuration/security/gce.tfvars"
+  "security/mig":
+    dir_path: "03-security/MIG"
+    tfvars_path: "../../../configuration/security/mig.tfvars"
+  "security/workbench":
+    dir_path: "03-security/Workbench"
+    tfvars_path: "../../../configuration/security/workbench.tfvars"
+  "producer/alloydb":
+    dir_path: "04-producer/AlloyDB"
+    tfvars_path: "../../../configuration/producer/AlloyDB/alloydb.tfvars"
+  "producer/mrc":
+    dir_path: "04-producer/MRC"
+    tfvars_path: "../../../configuration/producer/MRC/mrc.tfvars"
+  "producer/cloudsql":
+    dir_path: "04-producer/CloudSQL"
+    tfvars_path: "../../../configuration/producer/CloudSQL/cloudsql.tfvars"
+  "producer/gke":
+    dir_path: "04-producer/GKE"
+    tfvars_path: "../../../configuration/producer/GKE/gke.tfvars"
+  "producer/vectorsearch":
+    dir_path: "04-producer/VectorSearch"
+    tfvars_path: "../../../configuration/producer/VectorSearch/vectorsearch.tfvars"
+  "producer/onlineendpoint":
+    dir_path: "04-producer/Vertex-AI-Online-Endpoints"
+    tfvars_path: "../../../configuration/producer/Vertex-AI-Online-Endpoints/vertex-ai-online-endpoints.tfvars"
+  "producer/bigquery":
+    dir_path: "04-producer/BigQuery"
+    tfvars_path: "../../../configuration/producer/BigQuery/bigquery.tfvars"
+  "producer-connectivity":
+    dir_path: "05-producer-connectivity"
+    tfvars_path: "../../configuration/producer-connectivity.tfvars"
+  "consumer/gce":
+    dir_path: "06-consumer/GCE"
+    tfvars_path: "../../../configuration/consumer/GCE/gce.tfvars"
+  "consumer/serverless/cloudrun/job":
+    dir_path: "06-consumer/Serverless/CloudRun/Job"
+    tfvars_path: "../../../../../configuration/consumer/Serverless/CloudRun/Job/cloudrunjob.tfvars"
+  "consumer/serverless/cloudrun/service":
+    dir_path: "06-consumer/Serverless/CloudRun/Service"
+    tfvars_path: "../../../../../configuration/consumer/Serverless/CloudRun/Service/cloudrunservice.tfvars"
+  "consumer/serverless/appengine/standard":
+    dir_path: "06-consumer/Serverless/AppEngine/Standard"
+    tfvars_path: "../../../../../configuration/consumer/Serverless/AppEngine/Standard/standardappengine.tfvars"
+  "consumer/serverless/appengine/flexible":
+    dir_path: "06-consumer/Serverless/AppEngine/Flexible"
+    tfvars_path: "../../../../../configuration/consumer/Serverless/AppEngine/Flexible/flexibleappengine.tfvars"
+  "consumer/mig":
+    dir_path: "06-consumer/MIG"
+    tfvars_path: "../../../configuration/consumer/MIG/mig.tfvars"
+  "consumer/workbench":
+    dir_path: "06-consumer/Workbench"
+    tfvars_path: "../../../configuration/consumer/Workbench/workbench.tfvars"
+  "consumer/umig":
+    dir_path: "06-consumer/UMIG"
+    tfvars_path: "../../../configuration/consumer/UMIG/umig.tfvars"
+  "load-balancing/application/external":
+    dir_path: "07-consumer-load-balancing/Application/External"
+    tfvars_path: "../../../../configuration/consumer-load-balancing/Application/External/external-application-lb.tfvars"
+  "load-balancing/network/passthrough/internal":
+    dir_path: "07-consumer-load-balancing/Network/Passthrough/Internal"
+    tfvars_path: "../../../../../configuration/consumer-load-balancing/Network/Passthrough/Internal/internal-network-passthrough.tfvars"
+  "load-balancing/network/passthrough/external":
+    dir_path: "07-consumer-load-balancing/Network/Passthrough/External"
+    tfvars_path: "../../../../../configuration/consumer-load-balancing/Network/Passthrough/External/external-network-passthrough.tfvars"
+  "network-security-integration/securityprofile":
+    dir_path: "08-network-security-integration/SecurityProfile"
+    tfvars_path: "../../../configuration/network-security-integration/SecurityProfile/securityprofile.tfvars"
+  "network-security-integration/packetmirroringrule":
+    dir_path: "08-network-security-integration/PacketMirroringRule"
+    tfvars_path: "../../../configuration/network-security-integration/PacketMirroringRule/packetmirroringrule.tfvars"
+  "network-security-integration/outofband":
+    dir_path: "08-network-security-integration/Out-Of-Band"
+    tfvars_path: "../../../configuration/network-security-integration/OutOfBand/nsioutofband.tfvars"
+
+# NOTE : The next section must only be edited when there is a change in testing startegy required for all stages or any specfic stage
+test_plan:
+  default_commands:
+    - "apply"
+    - "init"
+    - "init-apply"
+
+  stage_specific_commands:
+    organization:
+      - "init"
+    
+    "network-security-integration/in-band":
+      - "init-apply-auto-approve"
+
+  custom_test_cases:
+    - name: "Networking Destroy with Auto Approve"
+      args: ["-s", "networking", "-t", "destroy-auto-approve"]
+    
+    - name: "Missing Command Flag Defaults to Init"
+      args: ["-s", "organization"]
+
+command_templates:
+  init: "init -var-file=%s"
+  apply: "apply -var-file=%s"
+  destroy: "destroy -var-file=%s"
+  init-apply: "init\napply -var-file=%s"
+  apply-auto-approve: "apply -var-file=%s --auto-approve"
+  destroy-auto-approve: "destroy -var-file=%s --auto-approve"
+  init-apply-auto-approve: "init\napply -var-file=%s --auto-approve"

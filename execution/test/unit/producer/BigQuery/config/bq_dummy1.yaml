@@ -1,0 +1,4 @@
+project_id: project-dummy-id
+dataset_id: bq_dummy1
+dataset_name: bq_dummy1
+location: US

@@ -1,0 +1,17 @@
+zones:
+  - zone: "forwarding-zone"
+    project_id: "<gcp-project-id>"
+    description: "Forwarding DNS zone"
+    force_destroy: false
+    zone_config:
+      domain: "forward.example.com."
+      visibility: "private"
+      reverse_lookup: false
+      private_visibility_config:
+        networks:
+          - network_url: "projects/<gcp-project-id>/global/networks/<your-network-name>"
+      forwarding_config:
+        target_name_servers:
+          - ipv4_address: "10.0.1.1"
+          - ipv4_address: "1.2.3.4"
+            forwarding_path: "private"

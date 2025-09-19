@@ -1,0 +1,15 @@
+
+response_policies:
+  - name: "my-response-policy"
+    project_id: "<gcp-project-id>"
+    description: "response policy for my use case"
+    policy_create: true
+    factories_config:
+      rules_folder: "projects/<gcp-project-id>/factories/rules"
+      enabled: true
+    networks:
+      default: "projects/<gcp-project-id>/global/networks/<your-network-name>"
+    rules:
+      - rule1:
+          dns_name: "*.googleapis.com."
+          behavior: "bypass"
