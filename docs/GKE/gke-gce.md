@@ -89,11 +89,7 @@ Here’s a guide to configure tfvars for each stage and then use run.sh to autom
 Prerequisites
 ---
 
-For the usage of this configuration solution, the following should be installed and properly configured: 
-
-1. **Terraform** : the modules are meant for use with Terraform version 1.9 or later and tested using Terraform version 1.9 or later. Choose and install the preferred Terraform binary from [here](https://releases.hashicorp.com/terraform/).
-
-2. **gcloud SDK** : install gcloud SDK from [here](https://cloud.google.com/sdk/docs/install) to authenticate to Google Cloud while running Terraform.
+For the common prerequisites for this repository, please refer to the **[prerequisites.md](../prerequisites.md)** guide. Any additional prerequisites specific to this user journey will be listed below.
 
 Deploy through terraform-cli
 ---
@@ -288,13 +284,9 @@ No known issues for this example at the moment, however if you run into any issu
 
 Troubleshoot Errors
 ---
-To troubleshoot errors, check Terraform's logs and output.
+For common troubleshooting steps and solutions, please refer to the **[troubleshooting.md](../troubleshooting.md)** guide.
 
 Submit feedback  
 ---
 
-To submit feedback, do the following:
-
-* If you're looking for assistance with streamlining network configuration automation for a comparable use case, feel free to submit an issue on the [GitHub repository](https://github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/issues).
-* For unmodified Terraform code, create issues in the [GitHub repository](https://github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/issues). GitHub issues are reviewed on a best-effort basis and are not intended for general use questions.
-* For issues with the products that are used in the solution, contact [Cloud Customer Care](https://cloud.google.com/support-hub).
+To provide feedback, please follow the instructions in our **[submit-feedback.md](../submit-feedback.md)** guide.

@@ -1,0 +1,15 @@
+zones:
+  - zone: "reverse-zone"
+    project_id: "<gcp-project-id>"
+    description: "Reverse DNS zone"
+    force_destroy: false
+    zone_config:
+      domain: "8.8.8.in-addr.arpa."
+      visibility: "public"
+      reverse_lookup: true
+    recordsets:
+      - name: "1.8.8.8.in-addr.arpa."
+        type: "PTR"
+        ttl: 300
+        records:
+          - "example.mydomain.com."

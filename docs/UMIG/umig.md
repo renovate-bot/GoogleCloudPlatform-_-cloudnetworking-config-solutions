@@ -62,6 +62,10 @@ This document will detail the architecture, deployment strategies, and operation
 
 ## Deploy the solution
 
+### **Prerequisites**
+
+For the common prerequisites for this repository, please refer to the **[prerequisites.md](../prerequisites.md)** guide. Any additional prerequisites specific to this user journey will be listed below.
+
 1. **Clone the cloudnetworking-config-solutions repository:**
 
     ```sh

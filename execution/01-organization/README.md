@@ -72,6 +72,7 @@ To get you started, we've included sample `terraform.tfvars` configuration files
         "iamcredentials.googleapis.com", 
         "artifactregistry.googleapis.com",
         "vpcaccess.googleapis.com",
+        "dns.googleapis.com",
       ],
     },
   }

@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+variable "organization_id" {
+  type        = string
+  description = "Google Cloud Organization ID which will be used to create organization level resources."
+}
+
 variable "bootstrap_project_id" {
   type        = string
   description = "Google Cloud Project ID which will be used to create the service account and Google Cloud storage buckets."
@@ -72,6 +77,30 @@ variable "networking_sa_name" {
 variable "networking_administrator" {
   type        = list(string)
   description = "List of Members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com)"
+  default     = [""]
+}
+
+variable "dns_managed_zones_sa_name" {
+  type        = string
+  description = "Name of the service account to create for DNS Managed Zones stage."
+  default     = "dns-managed-zones-sa"
+}
+
+variable "dns_managed_zones_administrator" {
+  type        = list(string)
+  description = "List of DNS Managed Zones administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com)"
+  default     = [""]
+}
+
+variable "dns_response_policy_sa_name" {
+  type        = string
+  description = "Name of the service account to create for DNS Response Policy stage."
+  default     = "dns-response-policy-sa"
+}
+
+variable "dns_response_policy_administrator" {
+  type        = list(string)
+  description = "List of DNS Response Policy administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com)"
   default     = [""]
 }
 
@@ -252,5 +281,17 @@ variable "consumer_umig_sa_name" {
 variable "consumer_umig_administrator" {
   type        = list(string)
   description = "List of UMIG administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com)"
+  default     = [""]
+}
+
+variable "nsi_sa_name" {
+  type        = string
+  description = "Name of the service account to create for Network Security Integration stage."
+  default     = "nsi-sa"
+}
+
+variable "nsi_administrator" {
+  type        = list(string)
+  description = "List of Network Security Integration administrative members to be granted an IAM role. e.g. (group:my-group@example.com),(user:my-user@example.com)"
   default     = [""]
 }

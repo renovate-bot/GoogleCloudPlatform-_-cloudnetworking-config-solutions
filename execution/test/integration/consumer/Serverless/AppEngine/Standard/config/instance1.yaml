@@ -1,0 +1,21 @@
+project_id: test-project-id
+service: service1
+version_id: v1-b01ckn
+runtime: python311
+deployment:
+  files:
+    name: app.yaml
+    source_url: https://storage.googleapis.com/test-project-id-tf-test-bucket/app-test-b01ckn/app.yaml
+entrypoint:
+  shell: gunicorn -b :$PORT main:app
+automatic_scaling:
+  max_concurrent_requests: 50
+  min_idle_instances: 1
+  max_idle_instances: 3
+handlers:
+- url_regex: /.*
+  script:
+    script_path: auto
+app_engine_application:
+  location_id: us-central1
+delete_service_on_destroy: true

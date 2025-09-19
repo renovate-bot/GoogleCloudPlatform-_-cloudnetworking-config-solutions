@@ -79,11 +79,7 @@ This section provides instructions on deploying the load balancer solution using
 
 ### Prerequisites
 
-For this configuration, ensure the following are installed:
-
-1.  **Terraform:** Modules are for use with Terraform 1.8+ and tested using Terraform 1.8+. Install from [Terraform Downloads](https://releases.hashicorp.com/terraform/).
-1.  **Terraform:** Modules are for use with Terraform 1.8+ and tested using Terraform 1.8+. Install from [Terraform Downloads](https://releases.hashicorp.com/terraform/).
-2.  **gcloud SDK:** Install the gcloud SDK from [Google Cloud SDK Documentation](https://cloud.google.com/sdk/docs/install) to authenticate to Google Cloud while running Terraform.
+For the common prerequisites for this repository, please refer to the **[prerequisites.md](../prerequisites.md)** guide. Any additional prerequisites specific to this user journey will be listed below.
 
 ### Deploy with "single-click"
 
@@ -338,12 +334,8 @@ This method uses Google Cloud Shell and Cloud Build to automate the deployment o
 
 ### Troubleshoot Errors
 
-Check Terraform's logs and output for errors.
+For common troubleshooting steps and solutions, please refer to the **[troubleshooting.md](../troubleshooting.md)** guide.
 
 ## Submit Feedback
 
-To submit feedback:
-
-  * For assistance with streamlining network configuration automation, submit an issue on the [GitHub repository](https://github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/issues).
-  * For unmodified Terraform code issues, create issues in the [GitHub repository](https://github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/issues).
-  * For issues with the Google Cloud products used, contact [Cloud Customer Care](https://cloud.google.com/support-hub).
+To provide feedback, please follow the instructions in our **[submit-feedback.md](../submit-feedback.md)** guide.

@@ -1,0 +1,11 @@
+# Creates only a Mirroring Endpoint Group.
+# This sets up the consumer-side parent resource in preparation for future associations.
+
+# You must provide the ID of the parent Deployment Group that already exists.
+existing_deployment_group_id: "projects/<deployment-group-gcp-project-id>/locations/global/mirroringDeploymentGroups/<deployment-group-name>" # <-- Replace
+
+endpoint_group:
+  create: <true or false> #e.g. true
+  endpoint_group_project_id: <endpoint-group-project-id> #e.g. "egp-test-project"
+  name: <name> #e.g. "ha-multi-consumer-eg"
+  description: <description> #e.g."Endpoint group for multiple consumer VPCs"

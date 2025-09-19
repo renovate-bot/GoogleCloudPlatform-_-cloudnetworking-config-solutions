@@ -1,0 +1,27 @@
+organization_id: <"YOUR_ORGANIZATION_ID">
+
+security_profile:
+  create: <true or false> #e.g. true
+  name: <name> #e.g. "advanced-threat-profile"
+  type: <type-of-security-profile> #e.g. "THREAT_PREVENTION"
+  description: <description> #e.g. "Profile with specific threat and antivirus overrides"
+  labels:
+    <key>: <value> #e.g. compliance: "pci"
+    <key>: <value> #e.g. service: "email-gateway"
+  threat_prevention_profile:
+    severity_overrides:
+      - severity: <value> #e.g. "CRITICAL"
+        action: <value> #e.g. "DENY"
+    threat_overrides:
+      - threat_id: <value> #e.g. "CVE-2021-44228"
+        action: <value> #e.g. "ALLOW"
+    antivirus_overrides:
+      - protocol: <value> #e.g. "SMTP"
+        action: <value> #e.g. "ALERT"
+
+security_profile_group:
+  create: <true or false> #e.g. true
+  name: <name> #e.g. "email-gateway-sec-group"
+  description: <description> #e.g. "Security group for the corporate email gateway"
+
+link_profile_to_group: <true or false> #e.g. true

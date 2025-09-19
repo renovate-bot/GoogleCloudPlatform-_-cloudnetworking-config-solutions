@@ -154,6 +154,8 @@ This section guides you through the process of deploying the solution.
 
 ### Prerequisites
 
+  For the common prerequisites for this repository, please refer to the **[prerequisites.md](../prerequisites.md)** guide. Any additional prerequisites specific to this user journey will be listed below.
+
   To establish connectivity between your on-premises environment and Google Cloud resources like **AlloyDB** and **Cloud SQL**, the following prerequisites and steps must be followed:
 
 ### Establishing Interconnect and Configuring Connectivity for AlloyDB or Cloud SQL
@@ -518,10 +520,6 @@ This document provides a guide to troubleshooting connectivity issues between an
 
 ## Submit feedback
 
-To troubleshoot errors, check Terraform's logs and output.
+For common troubleshooting steps and solutions, please refer to the **[troubleshooting.md](../troubleshooting.md)** guide.
 
-To submit feedback, do the following:
-
-* If you're looking for assistance with streamlining network configuration automation for a comparable use case, feel free to submit an issue on the [GitHub repository](https://github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/issues).
-* For unmodified Terraform code, create issues in the [GitHub repository](https://github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/issues). GitHub issues are reviewed on a best-effort basis and are not intended for general use questions.
-* For issues with the products that are used in the solution, contact [Cloud Customer Care](https://cloud.google.com/support-hub).
+To provide feedback, please follow the instructions in our **[submit-feedback.md](../submit-feedback.md)** guide.

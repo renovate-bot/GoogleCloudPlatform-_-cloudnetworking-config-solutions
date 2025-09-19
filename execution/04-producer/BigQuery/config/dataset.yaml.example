@@ -1,0 +1,8 @@
+project_id: <your-project-id>
+dataset_id: sample_dataset
+dataset_name: Dataset for Analytics
+description: Dataset for storing data and results.
+dataset_labels:
+  owner: <your-team>
+  environment: development
+deletion_protection: false

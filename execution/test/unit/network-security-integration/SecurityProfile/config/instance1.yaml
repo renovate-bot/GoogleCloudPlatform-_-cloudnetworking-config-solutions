@@ -1,0 +1,22 @@
+# This file creates both a profile and a group (2 resources).
+organization_id: "YOUR_ORGANIZATION_ID"
+
+# --- Defines the Security Profile resource ---
+security_profile:
+  create: true
+  name: "test-threat-profile"
+  type: "THREAT_PREVENTION"
+  description: "Test profile for unit testing"
+  threat_prevention_profile:
+    severity_overrides:
+      - severity: "CRITICAL"
+        action: "ALERT"
+
+# --- Defines the Security Profile Group resource ---
+security_profile_group:
+  create: true
+  name: "test-threat-profile-group"
+  description: "Test group for unit testing"
+
+# --- Links the two resources ---
+link_profile_to_group: true

@@ -23,17 +23,20 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 # Define valid stages to be accepted by the -s flag
-valid_stages="all organization networking networking/ncc networking/firewallendpoint security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/external load-balancing/network/passthrough/external"
+valid_stages="all organization networking networking/ncc networking/firewallendpoint networking/CloudDNS/DNSManagedZones networking/CloudDNS/CloudDNSResponsePolicy security/firewall/firewallpolicy security/securityprofile security/certificates/compute-ssl-certs/google-managed security/alloydb security/mrc security/cloudsql security/gce security/mig security/workbench producer/alloydb producer/mrc producer/cloudsql producer/gke producer/vectorsearch producer/onlineendpoint producer/bigquery producer-connectivity consumer/gce consumer/serverless/cloudrun/job consumer/serverless/cloudrun/service consumer/serverless/appengine/standard consumer/serverless/appengine/flexible consumer/mig consumer/workbench consumer/umig load-balancing/application/external load-balancing/network/passthrough/internal load-balancing/network/passthrough/external network-security-integration/outofband network-security-integration/securityprofile network-security-integration/packetmirroringrule"
 
 # Define valid Terraform commands to be accepted by the -tf or --tfcommand flag
 valid_tf_commands="init apply apply-auto-approve destroy destroy-auto-approve init-apply init-apply-auto-approve"
 
 # Define stage to path mapping (excluding "all")
+# shellcheck disable=SC2034
 stage_path_map=(
     "organization=01-organization"
     "networking=02-networking"
     "networking/ncc=02-networking/NCC"
     "networking/firewallendpoint=02-networking/FirewallEndpoint"
+    "networking/CloudDNS/DNSManagedZones=02-networking/CloudDNS/DNSManagedZones"
+    "networking/CloudDNS/CloudDNSResponsePolicy=02-networking/CloudDNS/CloudDNSResponsePolicy"
     "security/firewall/firewallpolicy=03-security/Firewall/FirewallPolicy"
     "security/securityprofile=03-security/SecurityProfile"
     "security/certificates/compute-ssl-certs/google-managed=03-security/Certificates/Compute-SSL-Certs/Google-Managed"
@@ -49,6 +52,7 @@ stage_path_map=(
     "producer/gke=04-producer/GKE"
     "producer/vectorsearch=04-producer/VectorSearch"
     "producer/onlineendpoint=04-producer/Vertex-AI-Online-Endpoints"
+    "producer/bigquery=04-producer/BigQuery"
     "producer-connectivity=05-producer-connectivity"
     "consumer/gce=06-consumer/GCE"
     "consumer/serverless/cloudrun/job=06-consumer/Serverless/CloudRun/Job"
@@ -61,15 +65,20 @@ stage_path_map=(
     "load-balancing/application/external=07-consumer-load-balancing/Application/External"
     "load-balancing/network/passthrough/internal=07-consumer-load-balancing/Network/Passthrough/Internal"
     "load-balancing/network/passthrough/external=07-consumer-load-balancing/Network/Passthrough/External"
-
+    "network-security-integration/outofband=08-network-security-integration/Out-Of-Band"
+    "network-security-integration/securityprofile=08-network-security-integration/SecurityProfile"
+    "network-security-integration/packetmirroringrule=08-network-security-integration/PacketMirroringRule"
 )
 
 # Define tfvars to stage path mapping (excluding "all")
+# shellcheck disable=SC2034
 stagewise_tfvar_path_map=(
     "01-organization=../../configuration/organization.tfvars"
     "02-networking=../../configuration/networking.tfvars"
     "02-networking/NCC=../../../configuration/networking/ncc/ncc.tfvars"
     "02-networking/FirewallEndpoint=../../../configuration/networking/FirewallEndpoint/firewallendpoint.tfvars"
+    "02-networking/CloudDNS/DNSManagedZones=../../../../configuration/networking/CloudDNS/dns.tfvars"
+    "02-networking/CloudDNS/CloudDNSResponsePolicy=../../../../configuration/networking/CloudDNS/responsepolicy.tfvars"
     "03-security/Firewall/FirewallPolicy=../../../../configuration/security/Firewall/FirewallPolicy/firewallpolicy.tfvars"
     "03-security/SecurityProfile=../../../configuration/security/SecurityProfile/securityprofile.tfvars"
     "03-security/Certificates/Compute-SSL-Certs/Google-Managed=../../../../../configuration/security/Certificates/Compute-SSL-Certs/Google-Managed/google_managed_ssl.tfvars"
@@ -85,6 +94,7 @@ stagewise_tfvar_path_map=(
     "04-producer/GKE=../../../configuration/producer/GKE/gke.tfvars"
     "04-producer/VectorSearch=../../../configuration/producer/VectorSearch/vectorsearch.tfvars"
     "04-producer/Vertex-AI-Online-Endpoints=../../../configuration/producer/Vertex-AI-Online-Endpoints/vertex-ai-online-endpoints.tfvars"
+    "04-producer/BigQuery=../../../configuration/producer/BigQuery/bigquery.tfvars"
     "05-producer-connectivity=../../configuration/producer-connectivity.tfvars"
     "06-consumer/GCE=../../../configuration/consumer/GCE/gce.tfvars"
     "06-consumer/Serverless/CloudRun/Job=../../../../../configuration/consumer/Serverless/CloudRun/Job/cloudrunjob.tfvars"
@@ -97,6 +107,9 @@ stagewise_tfvar_path_map=(
     "07-consumer-load-balancing/Application/External=../../../../configuration/consumer-load-balancing/Application/External/external-application-lb.tfvars"
     "07-consumer-load-balancing/Network/Passthrough/Internal=../../../../../configuration/consumer-load-balancing/Network/Passthrough/Internal/internal-network-passthrough.tfvars"
     "07-consumer-load-balancing/Network/Passthrough/External=../../../../../configuration/consumer-load-balancing/Network/Passthrough/External/external-network-passthrough.tfvars"
+    "08-network-security-integration/Out-Of-Band=../../../configuration/network-security-integration/OutOfBand/nsioutofband.tfvars"
+    "08-network-security-integration/SecurityProfile=../../../configuration/network-security-integration/SecurityProfile/securityprofile.tfvars"
+    "08-network-security-integration/PacketMirroringRule=../../../configuration/network-security-integration/PacketMirroringRule/packetmirroringrule.tfvars"
 )
 
 security_config_map=(
@@ -109,12 +122,15 @@ security_config_map=(
 )
 
 # Define stage to description mapping (excluding "all")
+# shellcheck disable=SC2034
 stage_wise_description_map=(
   "all=Progresses through each stage individually."
   "organization=Executes 01-organization stage, manages Google Cloud APIs."
   "networking=Executes 02-networking stage, manages network resources."
   "networking/ncc=Executes 02-networking/NCC stage, manages NCC network resources."
   "networking/firewallendpoint=02-networking/FirewallEndpoint, manages Firewall Endpoints and Firewall Endpoint Associations."
+  "networking/CloudDNS/DNSManagedZones=02-networking/CloudDNS/DNSManagedZones, manages DNS Managed Zones."
+  "networking/CloudDNS/CloudDNSResponsePolicy=02-networking/CloudDNS/CloudDNSResponsePolicy, manages Cloud DNS Response Policies."
   "security/firewall/firewallpolicy=03-security/Firewall/FirewallPolicy, manages firewall policies."
   "security/securityprofile=03-security/SecurityProfile, manages Security Profiles and Security Profile Groups."
   "security/certificates/compute-ssl-certs/google-managed=03-security/certificates/compute-ssl-certs/google-managed, manages ssl certificates"
@@ -129,6 +145,7 @@ stage_wise_description_map=(
   "producer/cloudsql=Executes 04-producer/CloudSQL stage, manages CloudSQL instance."
   "producer/gke=Executes 04-producer/GKE stage, manages GKE clusters."
   "producer/vectorsearch=Executes 04-producer/VectorSearch stage, manages Vector Search instances."
+  "producer/bigquery=Executes 04-producer/BigQuery stage, manages BigQuery instance."
   "producer/onlineendpoint=Executes 04-producer/Vertex-AI-Online-Endpoints stage, manages Online endpoints."
   "producer-connectivity=Executes 05-producer-connectivity stage, manages PSC for supported services."
   "consumer/gce=Executes 06-consumer/GCE stage, manages GCE instance."
@@ -142,9 +159,13 @@ stage_wise_description_map=(
   "load-balancing/application/external=Executes 07-consumer-load-balancing/Application/External stage, manages External Application Load Balancers."
   "load-balancing/network/passthrough/internal=Executes 07-consumer-load-balancing/Network/Passthrough/Internal stage, manages Int Net Passthrough LBs."
   "load-balancing/network/passthrough/external=Executes 07-consumer-load-balancing/Network/Passthrough/External stage, manages Ext Net Passthrough LBs."
-  )
+  "network-security-integration/outofband=Executes 08-network-security-integration/Out-Of-Band stage, manages Network Security Integration Out of Band."
+  "network-security-integration/securityprofile=Executes 08-network-security-integration/SecurityProfile stage, manages Security Profiles and Security Profile Groups."
+  "network-security-integration/packetmirroringrule=Executes 08-network-security-integration/PacketMirroringRule stage, manages Packet Mirroring Rule."
+)
 
 # Define tfcommand to description mapping.
+# shellcheck disable=SC2034
 tfcommand_wise_description_map=(
     "init=Prepare your working directory for other commands."
     "apply=Create or update infrastructure."
@@ -158,16 +179,12 @@ tfcommand_wise_description_map=(
 # Function to get the value associated with a key present in the *_map variables created
 function get_value {
   local key="$1"
-  local map_name="$2"    # Name of the map array
-  local map_ref
-  eval "map_ref=(\"\${$map_name[@]}\")"
+  local -n map_ref="$2" # Use a name reference to the map array
 
-  # Iterate directly over the elements of the array
+  # Iterate directly over the elements of the referenced array
   for pair in "${map_ref[@]}"; do
-    key_from_map="${pair%%=*}"       # Extract key (part before '=')
-    if [[ "$key_from_map" == "$key" ]]; then
-      value="${pair#*=}"
-      echo "${value}"
+    if [[ "${pair%%=*}" == "$key" ]]; then
+      echo "${pair#*=}"
       return
     fi
   done
@@ -183,46 +200,33 @@ function check_yaml_exists {
     fi
 }
 
-# Function to populate valid_producers_consumers array based on existing .yaml files
-function populate_valid_producers_consumers() {
-    for stage in "${!security_config_map[@]}"; do
-        config_path="${security_config_map[$stage]}"
-        if check_yaml_exists "$config_path"; then
-            valid_producers_consumers+=("$stage")
-        fi
-    done
-}
-
-# Call the function to populate the valid_producers_consumers array
-populate_valid_producers_consumers
-
 # Displays the table formatting.
 tableprint() {
     printf "\t\t "
-    printf "~%.0s" {1..154}
+    printf "~%.0s" {1..177}
     printf "\n"
 }
 
 # Describing the usage of the run.sh shell script.
 usage() {
-  printf "Usage: $0 [\033[1m-s|--stage\033[0m <stage>] [[\033[1m-t|--tfcommand\033[0m <command>] [\033[1m-h|--help\033[0m]\n"
+  printf "Usage: %s [\033[1m-s|--stage\033[0m <stage>] [[\033[1m-t|--tfcommand\033[0m <command>] [\033[1m-h|--help\033[0m]\n" "$0"
   printf " \033[1m-h, --help\033[0m              Displays the detailed help.\n"
   printf " \033[1m-s, --stage\033[0m             STAGENAME to be executed (STAGENAME is case insensitive). e.g. '-s all'  \n\t Valid options are: \n"
   tableprint
-  printf "\t\t |%-40s| %-110s|\n" "STAGENAME" "Description"
+  printf "\t\t |%-55s| %-118s|\n" "STAGENAME" "Description"
   tableprint
   for stage_name in $valid_stages; do
-    value=$(get_value $stage_name "stage_wise_description_map")
-    printf "\t\t |%-40s| %-110s|\n" "$stage_name"  "$value"
+    value=$(get_value "$stage_name" "stage_wise_description_map")
+    printf "\t\t |%-55s| %-118s|\n" "$stage_name"  "$value"
   done
   tableprint
   printf " \033[1m-t, --tfcommand\033[0m         TFCOMMAND to be executed (TFCOMMAND is case insensitive). e.g. '-t init' \n\t Valid options are: \n"
   tableprint
-  printf "\t\t |%-40s| %-110s|\n" "TFCOMMAND" "Description"
+  printf "\t\t |%-55s| %-118s|\n" "TFCOMMAND" "Description"
   tableprint
   for tfcommand_value in $valid_tf_commands; do
-    value=$(get_value $tfcommand_value "tfcommand_wise_description_map")
-    printf "\t\t |%-40s| %-110s|\n" "$tfcommand_value"  "$value"
+    value=$(get_value "$tfcommand_value" "tfcommand_wise_description_map")
+    printf "\t\t |%-55s| %-118s|\n" "$tfcommand_value"  "$value"
   done
   tableprint
 }
@@ -231,7 +235,7 @@ usage() {
 confirm() {
     while true; do
         echo -e "${RED} [WARNING] : This action modifies existing resources on all stages without further confirmation. Proceed with caution..${NC}"
-        read -p "Do you want to continue. Please answer y or n. $1 (y/n) " confirmation_input
+        read -r -p "Do you want to continue. Please answer y or n. (y/n) " confirmation_input
         case $confirmation_input in
             [Yy]* ) break;; # If user confirms, exit the loop
             [Nn]* ) exit 1;; # If user declines, exit the script
@@ -245,15 +249,15 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -s | --stage)
             stage="$2"
-            if [[ ! " $valid_stages " =~ " $stage " ]]; then
-                printf "${RED}Error: Invalid stage '$stage'. Valid options are: '${valid_stages// /\',\'}' ${NC}" >&2
+            if [[ ! " $valid_stages " =~ (^| )$stage( |$) ]]; then
+                printf "%sError: Invalid stage '%s'. Valid options are: '%s'%s\n" "${RED}" "$stage" "${valid_stages// /,}" "${NC}" >&2
                 exit 1
             fi
             shift 2 ;;
         -t | --tfcommand)
             tfcommand="$2"
-            if [[ ! " $valid_tf_commands " =~ " $tfcommand " ]]; then
-                printf "${RED}Error: Invalid Terraform command '$tfcommand'. Valid options are: '${valid_tf_commands// /\',\'}' ${NC}" >&2
+            if [[ ! " $valid_tf_commands " =~ (^| )$tfcommand( |$) ]]; then
+                printf "%sError: Invalid Terraform command '%s'. Valid options are: '%s'%s\n" "${RED}" "$tfcommand" "${valid_tf_commands// /,}" "${NC}" >&2
                 exit 1
             fi
             shift 2 ;;
@@ -261,7 +265,7 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0 ;;
         *)
-            echo "${RED}Invalid option: $1${NC}" >&2
+            printf "%sInvalid option: %s%s\n" "${RED}" "$1" "${NC}" >&2
             usage
             exit 1 ;;
     esac
@@ -355,11 +359,11 @@ else
       case "$tfcommand" in
           init) terraform init -var-file="$tfvar_file_path";;
           apply) terraform apply -var-file="$tfvar_file_path";;
-          apply-auto-approve) terraform apply -var-file=$tfvar_file_path --auto-approve ;;
+          apply-auto-approve) terraform apply -var-file="$tfvar_file_path" --auto-approve ;;
           destroy) terraform destroy -var-file="$tfvar_file_path";;
           destroy-auto-approve) terraform destroy -var-file="$tfvar_file_path" --auto-approve;;
           init-apply) terraform init && terraform apply -var-file="$tfvar_file_path";;
-          init-apply-auto-approve) terraform init && terraform apply -var-file=$tfvar_file_path --auto-approve ;;
+          init-apply-auto-approve) terraform init && terraform apply -var-file="$tfvar_file_path" --auto-approve ;;
           *) echo "${RED}Error: Invalid tfcommand '$tfcommand'${NC}" >&2; exit 1 ;;
       esac
     )

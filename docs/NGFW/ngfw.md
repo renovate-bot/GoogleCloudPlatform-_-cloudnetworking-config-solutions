@@ -61,13 +61,11 @@ This section guides you through the process of deploying the complete solution.
 
 ### Prerequisites
 
-For the usage of this configuration solution, the following should be installed:
+For the common prerequisites for this repository, please refer to the **[prerequisites.md](../prerequisites.md)** guide. Any additional prerequisites specific to this user journey will be listed below.
 
-1.  **Terraform**: Use with Terraform v1.12.0 or later.
-2.  **gcloud SDK**: Install the SDK to authenticate to Google Cloud.
-3.  **IAM Permissions**: Ensure the user or Service Account running Terraform has the combined set of roles required for both stages:
-    * **Project Roles:** `roles/compute.admin`, `roles/compute.securityAdmin`, `roles/compute.networkAdmin`, `roles/networksecurity.securityProfileAdmin`, `roles/serviceusage.serviceUsageConsumer`.
-    * **Organization Roles:** `roles/compute.orgFirewallPolicyAdmin`, `roles/resourcemanager.organizationViewer`.
+**IAM Permissions**: Ensure the user or Service Account running Terraform has the combined set of roles required for both stages:
+  * **Project Roles:** `roles/compute.admin`, `roles/compute.securityAdmin`, `roles/compute.networkAdmin`, `roles/networksecurity.securityProfileAdmin`, `roles/serviceusage.serviceUsageConsumer`.
+  * **Organization Roles:** `roles/compute.orgFirewallPolicyAdmin`, `roles/resourcemanager.organizationViewer`.
 
 ### Deploy through “terraform-cli”
 
@@ -164,5 +162,6 @@ For the usage of this configuration solution, the following should be installed:
 
 ## Submit feedback
 
-* For issues with the products used, contact [Cloud Customer Care](https://cloud.google.com/support-hub).
-* For issues with the Terraform code or this guide, please [submit an issue on the GitHub repository](https://github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/issues).
+For common troubleshooting steps and solutions, please refer to the **[troubleshooting.md](../troubleshooting.md)** guide.
+
+To provide feedback, please follow the instructions in our **[submit-feedback.md](../submit-feedback.md)** guide.

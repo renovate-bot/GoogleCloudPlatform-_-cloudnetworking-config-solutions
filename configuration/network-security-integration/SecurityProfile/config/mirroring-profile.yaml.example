@@ -1,0 +1,11 @@
+organization_id: <"YOUR_ORGANIZATION_ID">
+
+security_profile:
+  create: <true or false> #e.g. true
+  name: <name> #e.g. "internal-traffic-mirror"
+  type: <type-of-security-profile> #e.g. "CUSTOM_MIRRORING"
+  description: <description> #e.g. "Mirror internal traffic for inspection"
+  custom_mirroring_profile:
+    mirroring_endpoint_group: "projects/<your-project-id>/locations/global/mirroringEndpointGroups/<mirroring-endpoint-group-name>"
+
+# security_profile_group is omitted as we are not creating one

@@ -1,0 +1,18 @@
+organization_id: <"YOUR_ORGANIZATION_ID">
+
+security_profile:
+  create: <true or false> #e.g. true
+  name: <name> #e.g. "web-traffic-intercept-profile"
+  type: <type-of-security-profile> #e.g. "CUSTOM_INTERCEPT"
+  description: <description> #e.g. "Intercepts web traffic for deep packet inspection"
+  labels:
+    <key>: <value> #e.g. traffic: "web"
+  custom_intercept_profile:
+    intercept_endpoint_group: "projects/<your-gcp-project-id>/locations/global/interceptEndpointGroups/<intercept-endpoint-group-name>"
+
+security_profile_group:
+  create: <true or false> #e.g. true
+  name: <name> #e.g. "web-servers-intercept-group"
+  description: <description> #e.g. "Applies interception to all public-facing web servers"
+
+link_profile_to_group: <true or false> #e.g. true

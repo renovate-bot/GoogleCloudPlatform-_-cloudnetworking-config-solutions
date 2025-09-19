@@ -15,19 +15,16 @@ package integrationtest
 
 import (
 	"fmt"
+	"github.com/GoogleCloudPlatform/cloudnetworking-config-solutions/common_utils"
+	"github.com/gruntwork-io/terratest/modules/terraform"
+	"github.com/tidwall/gjson"
+	"gopkg.in/yaml.v2"
 	"math/rand"
 	"os"
 	"path"
 	"reflect"
-	stdlib_strconv "strconv"
-	"strings"
 	"testing"
 	"time"
-
-	"github.com/gruntwork-io/terratest/modules/shell"
-	"github.com/gruntwork-io/terratest/modules/terraform"
-	"github.com/tidwall/gjson"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -66,51 +63,6 @@ type AlloyDBStruct struct {
 	DeletionProtection         bool                  `yaml:"deletion_protection"`
 }
 
-// getProjectNumber retrieves the project number for a given project ID.
-func getProjectNumber(t *testing.T, projectID string) (string, error) {
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{"projects", "describe", projectID, "--format=value(projectNumber)"},
-	}
-	output, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		return "", fmt.Errorf("Error getting project number: %v", err)
-	}
-
-	// The gcloud command might output warnings before the actual project number,
-	// especially with impersonation. The project number is expected to be the last
-	// non-empty line of the output.
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	if len(lines) == 0 {
-		return "", fmt.Errorf("No output from gcloud projects describe for project ID %s", projectID)
-	}
-
-	// Get the last line and trim any surrounding single quotes
-	projectNumber := strings.Trim(lines[len(lines)-1], "'")
-
-	// Basic validation that it looks like a number
-	if _, err := stdlib_strconv.ParseInt(projectNumber, 10, 64); err != nil {
-		return "", fmt.Errorf("Extracted project number '%s' is not a valid number. Full output: %s. Error: %v", projectNumber, output, err)
-	}
-
-	return projectNumber, nil
-}
-
-// getAttachmentProjectNumber retrieves the project number for the attachment project.
-// If TF_VAR_ATTACHMENT_PROJECT_ID is not set, it defaults to the primary project ID.
-func getAttachmentProjectNumber(t *testing.T) (string, error) {
-	attachmentProjectID := os.Getenv("TF_VAR_ATTACHMENT_PROJECT_ID")
-
-	// If attachmentProjectID is not set, use the primary projectID as fallback.
-	if attachmentProjectID == "" {
-		attachmentProjectID = projectID
-		t.Logf("TF_VAR_ATTACHMENT_PROJECT_ID not set. Defaulting to primary project ID: %s", projectID)
-		return getProjectNumber(t, projectID) // Use the global projectID as the fallback
-	}
-
-	return getProjectNumber(t, attachmentProjectID)
-}
-
 /*
 This test creates all the pre-requsite resources including the vpc network, subnetwork along with a PSA range.
 It then validates if
@@ -123,13 +75,13 @@ func TestCreateAlloyDB(t *testing.T) {
 	createConfigYAMLs(t)
 
 	// Get the project number
-	projectNumber, err := getProjectNumber(t, projectID)
+	projectNumber, err := common_utils.GetProjectNumber(t, projectID)
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	attachmentProjectID := os.Getenv("TF_VAR_ATTACHMENT_PROJECT_ID")
 	// Get the attachment project number
-	attachmentProjectNumber, err := getAttachmentProjectNumber(t)
+	attachmentProjectNumber, err := common_utils.GetAttachmentProjectNumber(t, projectID, attachmentProjectID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,18 +102,18 @@ func TestCreateAlloyDB(t *testing.T) {
 		SetVarsAfterVarFiles: true,
 	})
 	// Create VPC outside of the terraform module.
-	err = createVPC(t, projectID, networkName)
+	common_utils.CreateVPCSubnets(t, projectID, networkName, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Create PSA in the VPC.
-	createPSA(t, projectID, networkName, rangeName)
+	common_utils.CreatePSA(t, projectID, networkName, rangeName)
 
 	// Delete VPC created outside of the terraform module.
-	defer deleteVPC(t, projectID, networkName)
+	defer common_utils.DeleteVPCSubnets(t, projectID, networkName, "", "")
 
 	// Remove PSA from the VPC.
-	defer deletePSA(t, projectID, networkName, rangeName)
+	defer common_utils.DeletePSA(t, projectID, networkName, rangeName)
 
 	// Clean up resources with "terraform destroy" at the end of the test.
 	defer terraform.Destroy(t, terraformOptions)
@@ -271,111 +223,18 @@ func TestCreateAlloyDB(t *testing.T) {
 }
 
 /*
-deleteVPC is a helper function which deletes the VPC after
-completion of the test.
-*/
-func deleteVPC(t *testing.T, projectID string, networkName string) {
-	time.Sleep(60 * time.Second)
-	text := "compute"
-	time.Sleep(60 * time.Second)
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "networks", "delete", networkName, "--project=" + projectID, "--quiet"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-}
-
-/*
-deletePSA is a helper function which deletes the PSA range after the
-execution of the test.
-*/
-func deletePSA(t *testing.T, projectID string, networkName string, rangeName string) {
-	// Delete PSA IP range
-	time.Sleep(60 * time.Second)
-	text := "compute"
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "addresses", "delete", rangeName, "--project=" + projectID, "--global", "--verbosity=none", "--format=json", "--quiet"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-	time.Sleep(60 * time.Second)
-	// Delete PSA range
-	text = "services"
-	cmd = shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "vpc-peerings", "delete", "--service=servicenetworking.googleapis.com", "--project=" + projectID, "--network=" + networkName, "--verbosity=none", "--format=json", "--quiet"},
-	}
-	_, err = shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-}
-
-/*
-createVPC is a helper function which creates the VPC before the
-execution of the test.
-*/
-func createVPC(t *testing.T, projectID string, networkName string) error {
-	text := "compute"
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "networks", "create", networkName, "--project=" + projectID, "--format=json", "--bgp-routing-mode=global", "--subnet-mode=custom", "--verbosity=none"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-	return err
-}
-
-/*
-createPSA is a helper function which creates the PSA range before the
-execution of the test.
-*/
-func createPSA(t *testing.T, projectID string, networkName string, rangeName string) {
-	// Create an IP range
-
-	text := "compute"
-	cmd := shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "addresses", "create", rangeName, "--purpose=VPC_PEERING", "--addresses=10.0.64.0", "--prefix-length=20", "--project=" + projectID, "--network=" + networkName, "--global", "--verbosity=none", "--format=json"},
-	}
-	_, err := shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-
-	// Create PSA range
-	text = "services"
-	cmd = shell.Command{
-		Command: "gcloud",
-		Args:    []string{text, "vpc-peerings", "connect", "--service=servicenetworking.googleapis.com", "--ranges=" + rangeName, "--project=" + projectID, "--network=" + networkName, "--verbosity=none", "--format=json"},
-	}
-	_, err = shell.RunCommandAndGetOutputE(t, cmd)
-	if err != nil {
-		t.Errorf("===Error %s Encountered while executing %s", err, text)
-	}
-}
-
-/*
 createConfigYAML is a helper function which creates the configigration YAML file
 for an alloydb instance range before the.
 */
 func createConfigYAMLs(t *testing.T) {
 	// Get the project number
-	projectNumber, err := getProjectNumber(t, projectID)
+	projectNumber, err := common_utils.GetProjectNumber(t, projectID)
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	attachmentProjectID := os.Getenv("TF_VAR_ATTACHMENT_PROJECT_ID")
 	// Get the attachment project number (replace with your actual logic)
-	attachmentProjectNumber, err := getAttachmentProjectNumber(t)
+	attachmentProjectNumber, err := common_utils.GetAttachmentProjectNumber(t, projectID, attachmentProjectID)
 	if err != nil {
 		t.Fatal(err)
 	}
